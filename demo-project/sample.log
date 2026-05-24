@@ -1,0 +1,6 @@
+2026-05-24 10:23:15 ERROR DatabaseError: connection timeout after 30s
+2026-05-24 10:23:16 ERROR DatabaseError: connection timeout after 30s
+2026-05-24 10:23:17 WARN  Retry failed for transaction tx-9981
+2026-05-24 10:23:45 ERROR InternalError: null value in column "user_id"
+2026-05-24 10:24:01 ERROR DatabaseError: too many connections (current: 150, max: 150)
+2026-05-24 10:24:15 INFO  Connection pool restored

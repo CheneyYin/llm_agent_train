@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提示词工程与 Agent 入门</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.min.css">
+<style>
+  :root { --r-heading-text-transform: none; }
+  .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
+  .reveal pre { font-size: 0.55em; width: 100%; }
+  .reveal code { font-size: 0.85em; }
+  .reveal table { font-size: 0.7em; margin: 0 auto; }
+  .reveal table th, .reveal table td { padding: 6px 12px; border-bottom: 1px solid #ddd; }
+  /* Mermaid 容器 */
+  .reveal .mermaid {
+    display: flex; justify-content: center; align-items: center;
+    width: 100%; min-height: 300px;
+    overflow: hidden !important;
+    cursor: zoom-in;
+    position: relative;
+  }
+  .reveal .mermaid:hover::after {
+    content: "🔍 点击放大";
+    position: absolute; bottom: 4px; right: 8px;
+    font-size: 11px; color: #999; background: rgba(255,255,255,0.8);
+    padding: 2px 6px; border-radius: 3px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .reveal .mermaid svg {
+    display: block;
+    transform-origin: top center;
+  }
+  /* 防止 Mermaid 节点内文字被裁剪 */
+  .reveal .mermaid svg foreignObject {
+    overflow: visible !important;
+  }
+  .reveal .mermaid svg foreignObject div {
+    overflow: visible !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  .reveal .mermaid svg > g {
+    clip-path: none !important;
+  }
+  /* 放大遮罩层 */
+  .mermaid-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.85); cursor: zoom-out;
+    justify-content: center; align-items: flex-start;
+    padding: 20px; overflow: auto;
+  }
+  .mermaid-overlay.active { display: flex; }
+  .mermaid-overlay svg {
+    max-width: none; width: auto; height: auto;
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    min-width: 800px;
+  }
+  .mermaid-overlay .close-hint {
+    position: fixed; top: 12px; right: 20px;
+    color: #fff; font-size: 14px; pointer-events: none;
+  }
+  /* 两栏布局中的 Mermaid 图 */
+  .two-col .mermaid svg { max-height: 320px; }
+  .two-col { display: flex; gap: 20px; align-items: flex-start; }
+  .two-col > div { flex: 1; min-width: 0; overflow: hidden; }
+  .tag { display: inline-block; background: #e8f0fe; color: #1967d2; border-radius: 4px; padding: 2px 8px; font-size: 0.7em; margin: 2px; }
+  .highlight-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 16px; margin: 10px 0; font-size: 0.8em; text-align: left; }
+  .analogy-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 10px 16px; margin: 10px 0; font-size: 0.8em; text-align: left; }
+  .check-box { background: #fce4ec; border-left: 4px solid #e91e63; padding: 10px 16px; margin: 10px 0; font-size: 0.8em; text-align: left; }
+  .transition-slide { background: #f5f5f5 !important; }
+  .transition-slide h2 { color: #555; font-style: italic; }
+  /* 纯 Mermaid 图幻灯片：标题更小，图占满 */
+  .mermaid-slide h3 { font-size: 0.9em; margin-bottom: 5px; }
+  .mermaid-slide .mermaid { min-height: 480px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- ═══════════════ 封面 ═══════════════ -->
+<section>
+  <h1>提示词工程与 Agent 入门</h1>
+  <p style="font-size:1.2em;color:#666;margin-top:30px;">用 AI 写更好的代码，让 Agent 帮你干活</p>
+  <p style="font-size:0.8em;color:#999;margin-top:40px;">时长 60 分钟 · 费曼学习法 · 理论 + 演示</p>
+</section>
+
+<!-- ═══════════════ PART 1：开场 (5min) ═══════════════ -->
+<section>
+  <h2>第一部分：开场与问题设定</h2>
+  <p style="color:#999">5 分钟</p>
+</section>
+
+<section>
+  <h3>破冰</h3>
+  <div class="highlight-box">
+    你每天写代码，有多少时间花在<b>非创造性的重复劳动</b>上？<br>
+    查日志 · 找 bug · 写样板代码 · 写文档……
+  </div>
+  <p style="margin-top:20px;">如果有一个工具能帮你分担这些，你会用吗？<b>怎么用？</b></p>
+</section>
+
+<section>
+  <h3>课程目标</h3>
+  <p>学完这堂课，你能：</p>
+  <ol>
+    <li class="fragment"><b>写出高质量提示词</b>，让 AI 更好帮你写代码</li>
+    <li class="fragment"><b>理解 Agent 是什么</b>、怎么工作的</li>
+    <li class="fragment"><b>判断什么时候该用</b> Agent</li>
+  </ol>
+</section>
+
+<section>
+  <h3>预告演示</h3>
+  <p>先花 30 秒看一眼 — pi agent 能做什么</p>
+  <pre><code class="language-text">$ cd demo-project
+$ pi
+&gt; 这个项目里有一个日志解析脚本 parse.py 和一个日志文件
+  sample.log。帮我快速看一下有什么问题。</code></pre>
+  <p style="font-size:0.7em;color:#999;margin-top:20px;">Agent 自己读文件 → 分析代码 → 指出 bug → 给出建议</p>
+</section>
+
+<!-- ═══════════ 过渡 1→2 ═══════════ -->
+<section class="transition-slide">
+  <h2>不是随便打几个字就能得到好结果</h2>
+  <p>提示词写得好不好，结果天差地别</p>
+  <p style="color:#1967d2;">先从最基础的技巧开始 →</p>
+</section>
+
+<!-- ═══════════════ PART 2：基础篇 (15min) ═══════════════ -->
+<section>
+  <h2>第二部分：提示词工程 · 基础篇</h2>
+  <p style="color:#999">15 分钟</p>
+  <p style="font-size:0.8em;"><b>输入的质量决定输出的质量</b></p>
+</section>
+
+<section>
+  <h3>什么是提示词工程？</h3>
+  <div class="analogy-box">
+你对 AI 说"帮我改代码"→ 它猜。<br>你说"分析 sample.log 的 ERROR 行，按类型归类"→ 直接出结果。<br><b>输入质量决定输出质量</b>。
+  </div>
+  <p style="margin-top:20px;">提示词工程 = <b>学会怎么跟 AI 说话</b></p>
+</section>
+
+<section>
+  <h3>技巧一：角色设定</h3>
+  <div class="analogy-box">
+告诉 AI 你是谁，它才知道怎么回答 — 就像点菜前告诉厨师口味。
+  </div>
+  <table style="margin-top:15px;">
+    <tr><th>回合</th><th>提示词</th><th>效果</th></tr>
+    <tr><td>无角色</td><td>"分析 sample.log"</td><td style="color:#c00;">泛泛回答</td></tr>
+    <tr><td>有角色</td><td>"你是资深 Python 后端开发，负责日志分析。请分析 sample.log"</td><td style="color:#0a0;">专业分析视角</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>技巧二：明确指令与约束</h3>
+  <table style="margin-top:15px;">
+    <tr><th>回合</th><th>提示词</th></tr>
+    <tr><td>模糊</td><td>"帮我分析这个日志文件"</td></tr>
+    <tr><td>精确</td><td>"分析 sample.log：① 按错误类型分组 ② 统计次数 ③ 按次数降序排列"</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>技巧三：Few-shot 示例</h3>
+  <p style="font-size:0.8em;">给一两个输入→输出的例子，AI 照猫画虎。</p>
+  <table style="margin-top:15px;">
+    <tr><th>回合</th><th>提示词</th><th>效果</th></tr>
+    <tr><td>0-shot</td><td>"把错误信息提取出来"</td><td style="color:#c00;">格式不确定</td></tr>
+    <tr><td>2-shot</td><td>"示例1：ERROR timeout → {级别:ERROR, 原因:timeout}。示例2：ERROR null → {级别:ERROR, 原因:null_value}。现在分析所有行。"</td><td style="color:#0a0;">严格遵循格式</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>技巧四：结构化输出</h3>
+  <div class="two-col" style="margin-top:15px;">
+    <div>
+      <p><b>Prompt 约束 JSON</b></p>
+      <pre><code>"只输出 JSON，不要其他文字"
+[{level, message, count}]</code></pre>
+      <p style="font-size:0.7em;color:#c00;">⚠ 偶有格式错误，依赖 LLM 输出质量</p>
+    </div>
+    <div>
+      <p><b>Pydantic AI — 代码定义 Schema</b></p>
+      <pre><code>class LogEntry(BaseModel):
+    time: str
+    level: str
+    message: str
+
+agent = Agent(
+    "openai:gpt-4o",
+    result_type=LogAnalysisResult
+)</code></pre>
+      <p style="font-size:0.7em;color:#0a0;">✓ 自动校验 + 重试，类型安全</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h3>Pydantic AI 原理</h3>
+  <div class="mermaid">
+flowchart TD
+    A[开发者定义 Pydantic Model<br/>描述期望的数据结构] --> B[库将 Model 转换为<br/>JSON Schema 发送给 LLM]
+    B --> C[LLM 按 Schema<br/>生成结构化响应]
+    C --> D{Pydantic 校验<br/>类型和字段是否匹配?}
+    D -->|通过| E[返回类型安全的<br/>Python 对象]
+    D -->|失败| F[库自动构造错误提示<br/>喂回给 LLM 重试]
+    F --> C
+  </div>
+</section>
+
+<section>
+  <div class="check-box">
+    <b>费曼检查</b><br>
+    "同事发了一条提示词，AI 回复很烂。你加上一句<br>'你是一个资深后端开发'——回复立刻好了。<br>为什么这一句话有这么大作用？用你自己的话解释。"
+  </div>
+</section>
+
+<!-- ═══════════ 过渡 2→3 ═══════════ -->
+<section class="transition-slide">
+  <h2>复杂问题不是一问一答能搞定的</h2>
+  <p>怎么让 AI 自己先想清楚再回答？</p>
+  <p style="color:#1967d2;">进阶技巧 →</p>
+</section>
+
+<!-- ═══════════════ PART 3：进阶篇 (15min) ═══════════════ -->
+<section>
+  <h2>第三部分：提示词工程 · 进阶篇</h2>
+  <p style="color:#999">15 分钟</p>
+  <p style="font-size:0.8em;">让 AI 学会先思考再回答</p>
+</section>
+
+<section>
+  <h3>技巧五：思维链（CoT）</h3>
+  <table style="margin-top:15px;">
+    <tr><th>回合</th><th>提示词</th></tr>
+    <tr><td>直接</td><td>"parse.py 有什么 bug？"</td></tr>
+    <tr><td>CoT</td><td>"逐步分析：① 看 sample.log 内容 ② 读 parse.py 逻辑 ③ 对比预期和实际 ④ 描述 bug"</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>CoT 效果对比</h3>
+  <table>
+    <tr><th>方式</th><th>优点</th><th>缺点</th></tr>
+    <tr><td>直接回答</td><td>快速、tokens 少</td><td style="color:#c00;">可能猜错，无法追溯推理</td></tr>
+    <tr><td>思维链</td><td style="color:#0a0;">推理可追踪，结论有据</td><td>tokens 多，回答长</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>技巧六：ReAct 模式</h3>
+  <p style="font-size:0.8em;">ReAct = 思考→行动→观察→再思考。所有 Agent 的底层工作模式。</p>
+  <div class="mermaid">
+flowchart LR
+    T[思考 Thought] --> A[行动 Action]
+    A --> O[观察 Observation]
+    O --> T
+  </div>
+</section>
+
+<section>
+  <h3>ReAct 演示</h3>
+  <div style="font-size:0.7em; text-align:left;">
+    <p><b>第1轮</b>：思考"先运行 parse.py"→ 行动：执行 → 观察：只输出4条，日志有6行</p>
+    <p><b>第2轮</b>：思考"漏掉了 WARN/INFO"→ 行动：读取源码 → 观察：正则只匹配 ERROR</p>
+    <p><b>第3轮</b>：思考"改正则"→ 行动：修改代码 → 观察：修复完成</p>
+    <p><b>第4轮</b>：思考"验证"→ 行动：运行 → 观察：输出6条 ✓</p>
+  </div>
+  <p style="margin-top:15px;font-size:0.8em;color:#1967d2;">这就是 Agent 的底层工作模式</p>
+</section>
+
+<section>
+  <h3>技巧七：Agent 上下文组成与生命周期</h3>
+  <div class="analogy-box">
+对话越长，早期内容越可能被清理 — 像手机后台，开太多最早的就杀了。<br>System Prompt 是系统进程，永不清理。
+  </div>
+  <div class="mermaid">
+flowchart LR
+    subgraph CTX["<b>Agent 上下文 — 每次 LLM 调用的完整 Prompt</b>"]
+        direction TB
+        S["<b>System Prompt</b><br/>━━━━━━━━━━━<br/>角色定义 · 行为约束 · Skill 列表<br/>━━━━━━━━━━━<br/>生命周期：整个 session 常驻<br/>（固定 ~2K-8K tokens）"]
+        T["<b>Tool Definitions</b><br/>━━━━━━━━━━━<br/>工具名称 + 参数 Schema<br/>━━━━━━━━━━━<br/>生命周期：整个 session 常驻<br/>（固定 ~500-2K tokens）"]
+        M["<b>Conversation Messages</b><br/>━━━━━━━━━━━<br/>用户消息 → 助手回复 → 工具结果<br/>→ 用户消息 → ...<br/>━━━━━━━━━━━<br/>生命周期：不断累积<br/>超过窗口时触发压缩"]
+    end
+  </div>
+</section>
+
+<section>
+  <h3>对话消息的累积与压缩</h3>
+  <div class="mermaid">
+flowchart TD
+    A["Session 开始<br/>上下文: System + Tools<br/>剩余空间: ~80%"] --> B["第1轮对话<br/>上下文: System + Tools + Msg1<br/>剩余空间: ~75%"]
+    B --> C["第5轮对话<br/>上下文: System + Tools + Msg1..5<br/>剩余空间: ~50%"]
+    C --> D["第15轮对话<br/>上下文: System + Tools + Msg1..15<br/>剩余空间: ~15%⚠️"]
+    D --> E{超过压缩阈值?}
+    E -->|否| F[继续累积]
+    E -->|是| G["触发压缩 Compaction<br/>→ 旧消息被 LLM 总结为一段摘要<br/>→ 摘要 + 最近 N 轮保留<br/>→ 上下文压缩回安全水位"]
+    G --> H["压缩后<br/>上下文: System + Tools + 摘要 + 最近N轮<br/>剩余空间: ~60% ✅"]
+    H --> C
+  </div>
+</section>
+
+<section>
+  <h3>压缩机制与核心原则</h3>
+  <div style="font-size:0.75em; text-align:left;">
+    <p><b>压缩三步</b>：① 选切割点（保留最近 ~20K tokens）→ ② 生成结构化摘要 → ③ 迭代更新已有摘要</p>
+  </div>
+  <table style="margin-top:10px;">
+    <tr><th>原则</th><th>说明</th></tr>
+    <tr><td>关键信息放 System Prompt</td><td style="color:#0a0;">永远不被压缩，最安全</td></tr>
+    <tr><td>长对话信任摘要</td><td>虽不完美，但比"AI 忘了"好得多</td></tr>
+    <tr><td>工具输出精简</td><td>别把 10MB 日志全塞进上下文</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>技巧八：Skill — 提示词的"函数化"</h3>
+  <p style="font-size:0.8em;">把反复使用的提示词封装成 Skill，下次一键调用。</p>
+  <pre><code style="font-size:0.55em;">skills/log-analyzer/
+├── SKILL.md              # 核心：YAML 头部 + Markdown 指令
+├── scripts/
+│   └── parse_log.py      # 辅助脚本
+└── references/
+    └── log-patterns.md   # 参考知识库</code></pre>
+  <p style="font-size:0.7em;margin-top:10px;">Agent Skills 开放标准（agentskill.io）— 40+ 平台通用</p>
+</section>
+
+<section>
+  <h3>Skill 渐进式加载</h3>
+  <div class="mermaid">
+flowchart TD
+    A[Agent 启动] --> B[扫描 skills/ 目录]
+    B --> C[发现 SKILL.md<br/>读取 YAML 头部]
+    C --> D[注册到可用 Skill 列表<br/>仅 ~100 tokens]
+    D --> E{用户任务<br/>匹配 Skill 描述?}
+    E -->|是| F[Agent 加载完整<br/>SKILL.md 指令]
+    E -->|否| G[不加载<br/>节省上下文]
+    F --> H{需要参考文档?}
+    H -->|是| I[按需加载<br/>references/ 中的文件]
+    H -->|否| J[执行指令]
+    I --> J
+  </div>
+</section>
+
+<section>
+  <div class="check-box">
+    <b>费曼检查</b><br>
+    "你要用 ReAct 模式教 AI 排查一个 bug——<br>它会先做什么？然后做什么？最后怎么知道做完了？<br>不用术语，用大白话说出这三步。"<br>
+    <span style="font-size:0.8em;">（观察数据 → 行动验证 → 看结果判断是否继续）</span>
+  </div>
+</section>
+
+<!-- ═══════════ 过渡 3→4 ═══════════ -->
+<section class="transition-slide">
+  <h2>前面的所有技巧 — 都是手工操作</h2>
+  <p>写提示词 → 看输出 → 判断 → 再写 → 再看……</p>
+  <p style="color:#1967d2;font-size:1.1em;">有没有东西能自动完成这个循环？</p>
+  <p style="color:#1967d2;font-size:1.3em;font-weight:bold;">Agent</p>
+</section>
+
+<!-- ═══════════════ PART 4：Agent (15min) ═══════════════ -->
+<section>
+  <h2>第四部分：Agent 入门</h2>
+  <p style="color:#999">15 分钟</p>
+</section>
+
+<section>
+  <h3>什么是 Agent？</h3>
+  <div class="analogy-box">
+    <b>自驾 vs 打车</b><br>
+    提示词工程 = 你开车，方向盘油门刹车全自己操作<br>
+    Agent = 你打车，告诉司机目的地，可以看风景回消息——但得确认司机没走错路
+  </div>
+  <div class="two-col" style="margin-top:15px;">
+    <div style="font-size:0.7em;">
+      <p><b>手动交互</b></p>
+      <div class="mermaid">
+flowchart TD
+    U1[你写提示词] --> A1[AI 回复]
+    A1 --> U2[你看结果]
+    U2 --> U3[你判断下一步]
+    U3 --> U4[你再写提示词]
+    U4 --> A2[AI 再回复]
+    A2 --> U5[...]
+      </div>
+    </div>
+    <div style="font-size:0.7em;">
+      <p><b>Agent 自主循环</b></p>
+      <div class="mermaid">
+flowchart TD
+    T1[理解任务] --> T2[选择工具]
+    T2 --> T3[执行工具]
+    T3 --> T4[观察结果]
+    T4 --> T5{完成?}
+    T5 -->|否| T1
+    T5 -->|是| T6[返回结果]
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h3>Agent 核心循环拆解</h3>
+  <div class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant A as Agent
+    participant T as 工具
+
+    U->>A: 分析 sample.log 并修复 parse.py
+    loop 思考-行动-观察 循环
+        A->>A: ① 理解：需要先看日志
+        A->>T: ② 行动：读 sample.log
+        T-->>A: ③ 观察：6行，含 ERROR/WARN/INFO
+        A->>A: ① 理解：检查 parse.py
+        A->>T: ② 行动：读 parse.py
+        T-->>A: ③ 观察：正则只匹配 ERROR
+        A->>A: ① 理解：找到 bug
+        A->>T: ② 行动：修改正则
+        T-->>A: ③ 观察：修改完成
+        A->>T: ② 行动：运行验证
+        T-->>A: ③ 观察：输出 6 条 ✓
+    end
+    A->>U: 任务完成
+  </div>
+</section>
+
+<section>
+  <h3>端到端演示</h3>
+  <p>一句话任务 → Agent 自主完成全流程</p>
+  <pre><code style="font-size:0.65em;">&gt; 分析 parse.py 和 sample.log，找出 parse.py 的 bug 并修复，
+  修复后运行 python parse.py sample.log 验证输出为 6 条</code></pre>
+  <table style="font-size:0.65em; margin-top:15px;">
+    <tr><th>时间</th><th>Agent 行为</th><th>点评</th></tr>
+    <tr><td>00:00</td><td>收到一句话任务</td><td>没有分步指导</td></tr>
+    <tr><td>00:05</td><td>选择先读 sample.log</td><td>自己决定顺序</td></tr>
+    <tr><td>00:20</td><td>定位到第 9 行正则</td><td>和人工分析结果一致</td></tr>
+    <tr><td>00:25</td><td>修改代码</td><td>自动编辑</td></tr>
+    <tr><td>00:30</td><td>运行验证命令</td><td>自动验证 ✓</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>Agent 的局限与边界</h3>
+  <p style="font-size:0.8em;">大路司机认识，小路岔口需你指路。通用任务 Agent 很稳，特定细节仍需你介入。</p>
+  <div class="mermaid">
+flowchart TD
+    Q1{任务目标明确?} -->|是| Q2{操作范围受控?}
+    Q1 -->|否| A1[手动做]
+    Q2 -->|是| Q3{结果可自动验证?}
+    Q2 -->|否| A2[监督执行：每步确认]
+    Q3 -->|是| A3[信任 Agent：自动完成]
+    Q3 -->|否| A2
+  </div>
+</section>
+
+<section>
+  <h3>三个安全原则</h3>
+  <ol>
+    <li><b>不盲信</b>：Agent 输出和人类代码一样需要 review</li>
+    <li><b>隔离环境</b>：用 git worktree / Docker 限制操作范围</li>
+    <li><b>可回滚</b>：所有修改都应可撤销（git commit 是最好保险）</li>
+  </ol>
+</section>
+
+<section>
+  <div class="check-box">
+    <b>费曼检查</b><br>
+    "一小时前，你手动写提示词分析日志。<br>现在 Agent 自动完成了同样的事。<br>从'手动'到'自动'，核心变化是什么？用你自己的话说。"<br>
+    <span style="font-size:0.8em;">（AI 自己驱动了思考-行动-观察循环，你从操作者变成了监督者）</span>
+  </div>
+</section>
+
+<!-- ═══════════ 过渡 4→5 ═══════════ -->
+<section class="transition-slide">
+  <h2>从"怎么写好一句话"<br>到"怎么让 AI 自己完成整个任务"</h2>
+  <p style="color:#1967d2;">回顾一下，明天上班你能用上什么？</p>
+</section>
+
+<!-- ═══════════════ PART 5：收尾 (5min) ═══════════════ -->
+<section>
+  <h2>第五部分：总结与收尾</h2>
+  <p style="color:#999">5 分钟</p>
+</section>
+
+<section>
+  <h3>三句话总结</h3>
+  <div style="text-align:left;">
+    <p class="fragment">❶ <b>好提示词 = 清晰角色 + 结构化要求 + 示例</b><br>
+    <span style="font-size:0.7em;color:#666;">像给 GPS 输入精确地址一样给 AI 输入提示词</span></p>
+    <p class="fragment">❷ <b>进阶技巧让 AI 自己思考验证</b><br>
+    <span style="font-size:0.7em;color:#666;">CoT 推理链 · ReAct 行动循环 · 上下文三层结构+压缩</span></p>
+    <p class="fragment">❸ <b>Agent = 自动化的"思考→行动→观察"循环</b><br>
+    <span style="font-size:0.7em;color:#666;">你从操作者变成监督者</span></p>
+  </div>
+</section>
+
+<section>
+  <h3>延伸学习</h3>
+  <ul style="font-size:0.8em;">
+    <li><b>pi agent</b>：<code>npm install -g @earendil-works/pi-coding-agent</code><br>
+    <span style="font-size:0.8em;">github.com/earendil-works/pi</span></li>
+    <li><b>提示词工程参考</b>：OpenAI Prompt Engineering Guide、Anthropic Prompt Library</li>
+    <li><b>Agent Skills 标准</b>：agentskill.io</li>
+  </ul>
+</section>
+
+<section>
+  <h3>讨论</h3>
+  <div class="highlight-box" style="font-size:1em;">
+    你日常开发中哪个环节最想先用 Agent 来提效？
+  </div>
+</section>
+
+<!-- ═══════════════ 附录 ═══════════════ -->
+<section>
+  <h3>附录：关键概念速查</h3>
+  <table style="font-size:0.55em;">
+    <tr><th>概念</th><th>一句话解释</th><th>类比</th></tr>
+    <tr><td>提示词工程</td><td>学会怎么跟 AI 说话</td><td>GPS 导航 — 输入决定输出</td></tr>
+    <tr><td>角色设定</td><td>给 AI 一个身份</td><td>点菜前告诉厨师口味</td></tr>
+    <tr><td>明确指令</td><td>告诉 AI 要什么、不要什么</td><td>API 参数 — 精确才拿到</td></tr>
+    <tr><td>Few-shot</td><td>给 AI 看期望的输出样例</td><td>例子比描述更直接</td></tr>
+    <tr><td>结构化输出</td><td>让 AI 输出 JSON</td><td>程序自动消费</td></tr>
+    <tr><td>思维链 CoT</td><td>写出推理过程</td><td>批卷看过程不看答案</td></tr>
+    <tr><td>ReAct</td><td>思考→行动→观察→再思考</td><td>Agent 底层工作模式</td></tr>
+    <tr><td>上下文管理</td><td>三层结构 + 压缩</td><td>手机后台清最早</td></tr>
+    <tr><td>Skill</td><td>好提示词封装复用</td><td>一次封装多次调用</td></tr>
+    <tr><td>Agent</td><td>自动化思考+行动+观察循环</td><td>自驾 vs 打车</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>谢谢</h2>
+  <p style="color:#999;">提示词工程与 Agent 入门</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js-mermaid-plugin@11.15.0/plugin/mermaid/mermaid.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true, slideNumber: 'c/t', width: 1200, height: 800,
+    margin: 0.1, transition: 'slide',
+    plugins: [ RevealMermaid, RevealHighlight, RevealNotes ],
+    mermaid: {
+      theme: 'neutral',
+      themeVariables: {
+        fontSize: '12px',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      },
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis', nodeSpacing: 20, rankSpacing: 30 },
+      sequence: { useMaxWidth: true, showSequenceNumbers: false, actorMargin: 40, messageMargin: 25, boxMargin: 8 }
+    }
+  });
+
+  // ── 点击放大遮罩层 ──
+  const overlay = document.createElement('div');
+  overlay.className = 'mermaid-overlay';
+  overlay.innerHTML = '<span class="close-hint">点击任意位置关闭 · ESC 关闭</span>';
+  overlay.addEventListener('click', () => overlay.classList.remove('active'));
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') overlay.classList.remove('active');
+  });
+
+  // 渲染完成后：等比缩放 SVG 适配幻灯片 + 绑定点击放大
+  function attachZoom(slide) {
+    slide.querySelectorAll('.mermaid svg').forEach(svgEl => {
+      if (svgEl.dataset.zoomReady) return;
+      svgEl.dataset.zoomReady = '1';
+
+      // ── 等比缩放 SVG 以适配容器 ──
+      const container = svgEl.closest('.mermaid');
+      const vb = svgEl.getAttribute('viewBox');
+      if (vb && container) {
+        const [, , vbW, vbH] = vb.split(' ').map(Number);
+        if (vbW && vbH) {
+          // 可用空间
+          const slideEl = container.closest('section');
+          const maxW = container.clientWidth - 16;
+          const slideH = slideEl ? slideEl.clientHeight : 800;
+          // 减去标题、padding、上下边距
+          const heading = slideEl ? slideEl.querySelector('h1,h2,h3') : null;
+          const headingH = heading ? heading.getBoundingClientRect().height : 0;
+          const maxH = slideH - headingH - 100;
+
+          const scale = Math.min(maxW / vbW, maxH / vbH, 1.0);
+          if (scale < 1.0) {
+            svgEl.style.width = vbW + 'px';
+            svgEl.style.height = vbH + 'px';
+            svgEl.style.transform = `scale(${scale})`;
+            // 调整容器高度 = 缩放后的 SVG 高度，避免空白
+            container.style.minHeight = (vbH * scale) + 'px';
+          }
+        }
+      }
+
+      // ── 点击放大 ──
+      svgEl.closest('.mermaid').onclick = (e) => {
+        e.stopPropagation();
+        overlay.innerHTML = '';
+        const clone = svgEl.cloneNode(true);
+        clone.style.cssText = 'width:auto;max-width:none;height:auto;max-height:none;cursor:zoom-out;min-width:900px;background:#fff;border-radius:8px;padding:24px;transform:none;';
+        const hint = document.createElement('span');
+        hint.className = 'close-hint';
+        hint.textContent = '点击任意位置关闭 · ESC 关闭';
+        overlay.appendChild(hint);
+        overlay.appendChild(clone);
+        overlay.classList.add('active');
+      };
+    });
+  }
+
+  Reveal.on('slidechanged', event => {
+    // 插件异步渲染，等一帧确保 SVG 已插入 DOM
+    requestAnimationFrame(() => attachZoom(event.currentSlide));
+  });
+  Reveal.on('ready', event => {
+    requestAnimationFrame(() => attachZoom(Reveal.getCurrentSlide()));
+  });
+</script>
+</body>
+</html>

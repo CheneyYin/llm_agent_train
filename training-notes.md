@@ -264,6 +264,8 @@ flowchart LR
   观察：正则只匹配了 'ERROR'，没有匹配 WARN 和 INFO
 ```
 
+**注意**：刚才演示中 AI 的每个"行动"——运行命令、读文件——本质上都是 **Tool 调用**。Tool 是 Agent 的"手"，我们稍后会专门拆解它的原理。
+
 **过渡**：ReAct 模式好是好，但每轮都带着前面所有的上下文——对话越长，占用的 token 越多。AI 有上下文窗口的限制。
 
 ### 技巧七：Agent 上下文组成与生命周期（3 分钟）
@@ -392,9 +394,155 @@ flowchart TD
 
 ---
 
-< 衔接过渡 3 → 4 >
+< 衔接过渡 3 → Tool >
 
-回顾一下我们现在做的事：写好提示词 → 看 AI 输出 → 判断结果行不行 → 不行就改提示词再来 → 再看输出……每一步都是你手动操作。有没有一种东西，能自动完成这个循环？它自己思考、自己调用工具、自己看结果、自己决定下一步？这个东西就叫 Agent。前面的所有技巧——角色设定、结构化输出、CoT、ReAct——其实都在为这一刻铺垫。
+ReAct 模式里有一个关键步骤——"行动"。AI 自己不会动手——你需要给它工具。接下来我们看看，AI 怎么使用工具、工具调用背后发生了什么。
+
+---
+
+## 工具专题：Tool 调用原理与实践（8 分钟）
+
+定位：把 ReAct 中"行动"这一步具体化——LLM 如何输出 tool call、Agent runtime 如何执行、开发者如何注册自定义工具。
+
+### Tool 调用的本质（2 分钟）
+
+LLM 本身不执行工具。它只是输出一个结构化的 JSON：
+
+```json
+{ "name": "read_file", "arguments": { "path": "sample.log" } }
+```
+
+Agent runtime 拦截这个响应 → 执行真正的 `read_file("sample.log")` → 把结果作为新消息追加到对话 → LLM 根据结果继续推理。
+
+```mermaid
+sequenceDiagram
+    participant L as LLM
+    participant R as Agent Runtime
+    participant T as 真实工具
+
+    L->>R: 输出: {"name":"read_file","arguments":{"path":"sample.log"}}
+    R->>T: read_file("sample.log")
+    T-->>R: 文件内容...
+    R->>L: 追加 tool result 消息
+    L->>L: 根据文件内容继续推理
+```
+
+**核心理解**：LLM 是大脑，Tool 是手。大脑决定"读那个文件"，手执行读取，触觉（文件内容）反馈回大脑。
+
+**过渡**：协议的每一步都有具体的钩子。我们对照 pi agent 的源码，看一个 Tool 调用从出生到死亡经历了什么。
+
+### Tool 调用协议与生命周期（3 分钟）
+
+一个完整的 tool 调用从 LLM 输出到结果回传，经过协议定义的 6 个步骤：
+
+```mermaid
+sequenceDiagram
+    participant L as LLM
+    participant R as Agent Runtime
+    participant T as Tool
+
+    L->>R: ① 输出 tool call<br/>{name, arguments}
+    R->>R: ② Schema 校验<br/>validateToolArguments()
+    R->>R: ② 权限检查<br/>beforeToolCall() → block?
+    R->>T: ③ 执行<br/>tool.execute(id, params, signal, onUpdate)
+    T-->>R: ④ 结果<br/>AgentToolResult{content, details}
+    R->>R: ⑤ 后处理<br/>afterToolCall() → 可重写结果
+    R->>L: ⑥ 追加 toolResult 到对话
+```
+
+**pi 源码对照**：
+
+| 步骤 | pi 钩子 | 作用 |
+|------|--------|------|
+| ① LLM 输出 | `message_update (toolcall_start/delta/end)` | 流式接收 tool call 参数 |
+| ② Schema 校验 | `validateToolArguments()` + `beforeToolCall` | TypeBox schema 验证 + 权限门禁 |
+| ③ 执行 | `tool.execute(toolCallId, params, signal, onUpdate)` | 实际调用，支持流式进度推送 |
+| ④ 结果返回 | `AgentToolResult { content, details, terminate }` | 结构化结果 |
+| ⑤ 后处理 | `afterToolCall({ result, isError })` | 可重写结果、标记错误 |
+| ⑥ 追加对话 | `context.messages.push(toolResult)` | LLM 下轮带上工具结果 |
+
+**关键细节**：
+- **流式更新**：`onUpdate(partialResult)` 允许工具实时推送进度（如"正在读取第 3/10 个文件……"）
+- **权限门禁**：`beforeToolCall` 返回 `{ block: true }` 可拦截（如"试图删除生产文件？拦截"）
+- **终止信号**：`terminate: true` 让 Agent 在工具执行后停止循环
+- **并行执行**：多个 tool call 可并发执行，按 LLM 输出顺序组装结果
+
+**过渡**：原理懂了，我们来写一个真正的工具——用 pi 的 TypeScript 扩展机制，给 Agent 装上一只新手。
+
+### 实战：注册自定义 Tool（3 分钟）
+
+场景：为演示项目注册一个 `count_log_levels` 工具，让 Agent 可以自动统计日志级别分布。
+
+讲师在编辑器中打开 `scripts/log-tools.ts`，逐段讲解：
+
+```typescript
+// scripts/log-tools.ts
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "@earendil-works/pi-ai";
+
+export default function (pi: ExtensionAPI) {
+
+  // ① Schema：定义工具的参数格式（LLM 据此判断何时调用）
+  pi.registerTool({
+    name: "count_log_levels",
+    label: "统计日志级别",
+    description: "读取日志文件，统计 ERROR/WARN/INFO 各级别数量",
+    parameters: Type.Object({
+      filepath: Type.String({ description: "日志文件路径" }),
+    }),
+
+    // ② Execute：实际的业务逻辑
+    execute: async (toolCallId, params, signal, onUpdate) => {
+      onUpdate({ content: [{ type: "text", text: "正在读取文件..." }], details: {} });
+
+      const fs = await import("fs");
+      const content = fs.readFileSync(params.filepath, "utf-8");
+      const lines = content.split("\n");
+
+      const counts: Record<string, number> = {};
+      for (const line of lines) {
+        const match = line.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} (\w+)/);
+        if (match) counts[match[1]] = (counts[match[1]] || 0) + 1;
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(counts, null, 2) }],
+        details: { totalLines: lines.length, counts },
+      };
+    },
+  });
+
+  // ③ Hook：权限控制——只允许分析 .log 文件
+  pi.on("tool_call", async (event) => {
+    if (event.toolName === "count_log_levels") {
+      const path = (event.arguments as any).filepath;
+      if (!path.endsWith(".log")) {
+        return { block: true, reason: "只允许分析 .log 文件" };
+      }
+    }
+  });
+}
+```
+
+**演示效果**：在 pi 中输入"用 count_log_levels 工具分析 sample.log"，Agent 自动调用该工具。
+
+**Tool 三要素总结**：
+
+| 要素 | 代码 | 作用 |
+|------|------|------|
+| **Schema** | `Type.Object({ filepath: Type.String() })` | 告诉 LLM 工具的参数格式 |
+| **Execute** | `execute: async (...) => { ... }` | 实际执行逻辑 |
+| **Hook** | `pi.on("tool_call", ...)` | 权限控制 / 结果后处理 |
+
+---
+
+**费曼检查**："Tool 调用的三个关键角色是什么？不用术语，用大白话说。"（大脑发指令 → 手干活 → 触觉反馈回大脑，讲师停顿 8 秒，学生自检）
+
+---
+
+< 衔接过渡 Tool → 4 >
+
+现在我们知道了 Tool 是 Agent 的"手"。加上前面学的 CoT（思考链）和 ReAct（思考→行动→观察），你已经看到了 Agent 的全套零件——思考的大脑 + 行动的双手 + 观察的眼睛。把这些组装起来，就是 Agent。
 
 ---
 
@@ -466,8 +614,8 @@ sequenceDiagram
 **四步拆解**：
 
 1. **理解任务**：Agent 解读用户目标，拆解为子任务
-2. **选择工具**：Agent 决定用什么工具（读文件、运行命令、搜索代码……）
-3. **执行工具**：Agent 实际调用工具
+2. **选择工具**：Agent 从可用工具列表中匹配——回顾 Tool 专题：Schema 定义了每个工具的参数格式，Agent 据此判断"这个工具能完成当前子任务"
+3. **执行工具**：Agent Runtime 调用工具的 Execute 函数，Hook 做权限检查——这正是 Tool 专题讲的 Schema/Execute/Hook 三要素在运转
 4. **观察结果**：Agent 分析工具输出，判断是否需要继续
 
 **过渡**：理论讲完了，我们来看一个真实的例子——用 pi agent 从头到尾完成一个开发任务。注意观察：Agent 在每一步是怎么思考、怎么选工具、怎么根据结果调整的。
@@ -531,8 +679,9 @@ flowchart TD
 三句话总结今天的内容：
 
 1. **好提示词 = 清晰角色 + 结构化要求 + 示例**——输入质量决定输出质量
-2. **进阶技巧让 AI 自己思考验证**——思维链（一步步推理）、ReAct（思考+行动+观察循环）、上下文管理（关键信息前置）
-3. **Agent = 自动化的"思考→行动→观察"循环**——它把前面所有技巧内化成了自动流程，你只需要描述目标
+2. **进阶技巧让 AI 自己思考验证**——思维链（一步步推理）、ReAct（思考+行动+观察循环）、上下文管理（三层结构，超限压缩）
+3. **Tool = Agent 的"手"**——Schema 定义接口、Execute 执行逻辑、Hook 控制权限。LLM 输出 tool call → Runtime 执行 → 结果回传
+4. **Agent = 自动化的"思考→行动→观察"循环**——把前面所有技巧内化成了自动流程，你从操作者变成监督者
 
 **过渡**：这三句话你现在可能觉得理所应当，但回想一下一小时前——你可能还在随便打字问 AI。这些技巧不需要你全部记住，挑一个明天就用的，先练起来。如果还想继续深入，这里有一些资源。
 

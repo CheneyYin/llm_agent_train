@@ -5,7 +5,7 @@
 - **主语言**：中文（技术术语可保留英文原文）
 - **受众**：有编程经验、对 LLM/Agent 接触较少的开发工程师
 - **形式**：现场讲课 + 演示，讲师主讲，学员观看
-- **时长**：60 分钟（55 分钟内容 + 5 分钟缓冲）
+- **时长**：65 分钟（63 分钟内容 + 2 分钟缓冲）
 - **方法**：费曼学习法 — 用简单语言和类比解释复杂概念
 - **工具**：[pi agent](https://github.com/earendil-works/pi) — 开源编程 Agent CLI（TypeScript monorepo，包含 @earendil-works/pi-ai 多供应商 LLM 层、@earendil-works/pi-agent-core Agent 运行时、@earendil-works/pi-coding-agent 交互式编程 Agent CLI）
 - **交付物**：`training-notes.md`（讲义） + `demo-scripts/`（演示脚本）
@@ -117,14 +117,32 @@ demo-project/
 | 4分钟 | Skill：提示词的"函数化" | "代码里的函数封装"类比；展示 agentskill.io 规范的 Skill 目录结构、SKILL.md 格式、渐进式加载原理（Mermaid 图） | 终端展示 `skills/log-analyzer/` 目录结构；编辑器打开 SKILL.md 逐段讲解；Mermaid 图展示三层渐进式加载 |
 | ↳ | **费曼检查**："CoT 和 ReAct 有什么区别？用一个词形容各自的核心。"（CoT=推理链，ReAct=行动循环，讲师口头确认） | | |
 
-< 衔接过渡 3 → 4 >
-"回顾一下我们现在做的事：写好提示词 → 看 AI 输出 → 判断结果行不行 → 不行就改提示词再来 → 再看输出……每一步都是你手动操作。有没有一种东西，能自动完成这个循环？它自己思考、自己调用工具、自己看结果、自己决定下一步？这个东西就叫 Agent。前面的所有技巧——角色设定、结构化输出、CoT、ReAct——其实都在为这一刻铺垫。"
+< 衔接过渡 3 → Tool >
+"ReAct 模式里有一个关键步骤——'行动'。AI 怎么行动？它自己不会动手——你需要给它工具。接下来我们看看，AI 怎么使用工具、工具调用的背后发生了什么。"
+
+---
+
+### 工具专题：Tool 调用原理与实践（8 分钟）
+
+定位：连接"提示词工程"和"Agent 入门"的桥梁。把 ReAct 中"行动"这一步具体化——LLM 如何输出 tool call、Agent runtime 如何执行、开发者如何注册自定义工具。
+
+| 时间 | 主题 | 内容 | 演示 |
+|------|------|------|------|
+| 2分钟 | Tool 调用的本质 | LLM 不执行工具——它只输出 `{name, arguments}` JSON。Agent runtime 拦截→执行→结果回传→LLM 继续。LLM=大脑，Tool=手 | Mermaid 时序图：LLM → Tool Call → Runtime → 真实执行 → 结果回传 |
+| ↳ | 过渡："协议的每一步都有具体的钩子。我们对照 pi agent 的源码，看一个 Tool 调用从出生到死亡经历了什么。" | | |
+| 3分钟 | Tool 调用协议与生命周期 | 6 步流程：① LLM 输出 tool call → ② Schema 校验 + 权限检查 → ③ 执行工具 → ④ 返回结果 → ⑤ 后处理 → ⑥ 追加到对话。对照 pi 源码的钩子（`validateToolArguments`、`beforeToolCall`、`execute`、`afterToolCall`） | Mermaid 时序图：6 步协议流程 + 表格对照 pi 钩子 |
+| ↳ | 过渡："原理懂了，我们来写一个真正的工具——用 pi 的 TypeScript 扩展机制，给 Agent 装上一只新手。" | | |
+| 3分钟 | 实战：注册自定义 Tool | 用 pi Extension 注册 `count_log_levels` 工具。三要素：Schema（TypeBox 定义参数）、Execute（业务逻辑 + 流式进度推送）、Hook（权限门禁）。演示 Agent 调用该工具分析 sample.log | 编辑器展示 `scripts/log-tools.ts`；pi 中运行 "用 count_log_levels 分析 sample.log" |
+| ↳ | **费曼检查**："Tool 调用的三个关键角色是什么？不用术语，用大白话说。"（大脑发指令 → 手干活 → 触觉反馈回大脑，讲师快速口头过一遍） | | |
+
+< 衔接过渡 Tool → 4 >
+"现在我们知道了 Tool 是 Agent 的'手'。加上前面学的 CoT（思考链）和 ReAct（思考→行动→观察），你已经看到了 Agent 的全套零件——思考的大脑 + 行动的双手 + 观察的眼睛。把这些组装起来，就是 Agent。"
 
 ---
 
 ### 第四部分：Agent 入门（15 分钟）
 
-串联收束：把前面手动做的"提示 → 执行 → 看结果 → 再提示"流程，交给 Agent 自动完成。全场的叙事高潮。以演示为主。
+串联收束：把前面手动做的提示工程和 Tool 调用，交给 Agent 自动完成。全场的叙事高潮。以演示为主。
 
 | 时间 | 主题 | 费曼手法 | 演示 |
 |------|------|----------|------|
@@ -154,7 +172,7 @@ demo-project/
 
 ### 缓冲时间（5 分钟）
 
-灵活用于超时、额外问答或延长的演示。
+灵活用于超时、额外问答或延长的演示。（时长已调整为 65 分钟，缓冲从 5 压缩至 2 分钟）
 
 ## 贯穿叙事线
 
@@ -166,21 +184,24 @@ demo-project/
 | 2. + 角色 + 约束 | 加上"你是资深 SRE，按错误类型归类统计" | 效果好多了，但仍像自由散文 |
 | 3. + Few-shot + 结构化输出 | 给一个分析报告的 JSON 样例 + 要求返回同格式 | 结果可直接解析，但一问一答不够深 |
 | 4. + 思维链 + ReAct | "先看日志，再读 parse.py 源码，再推测 bug，最后验证" | 多轮深度分析，带交叉验证 |
-| 5. Agent 自动化 | 把整个任务丢给 Agent：分析日志 → 定位 parse.py 的 bug → 修改代码 → 验证修复 | Agent 自主完成全流程；前面所有手动技巧都被 Agent 内化 |
+| 5. + Tool 调用 | 给 Agent 注册一个 `count_log_levels` 工具，Agent 自动决定何时调用 | Tool 把"行动"这一步具体化为可复用的函数 |
+| 6. Agent 自动化 | 把整个任务丢给 Agent：分析日志 → 定位 parse.py 的 bug → 修改代码 → 验证修复 | Agent 自主完成全流程；前面所有手动技巧都被 Agent 内化 |
 
 这条弧线展示了每个技巧**为什么**重要，以及 Agent **为什么**是这一切的自然终点。
 
 ## Mermaid 图表清单
 
-讲义中嵌入 7 张 Mermaid 图：
+讲义中嵌入 9 张 Mermaid 图：
 
 1. **Pydantic AI 校验重试原理图** — 流程图：定义 Model → 转 JSON Schema → LLM 生成 → Pydantic 校验 → 通过则返回 / 失败则重试
-2. **Agent 上下文三层结构图** — block-beta 图：System Prompt（常驻）+ Tools（常驻）+ Messages（动态+可压缩）
+2. **Agent 上下文三层结构图** — flowchart：System Prompt（常驻）+ Tools（常驻）+ Messages（动态+可压缩）
 3. **上下文累积与压缩流程图** — 流程图：Session 开始 → 对话累积 → 超过阈值 → 触发 Compaction → 生成摘要 → 回到安全水位
 4. **Skill 渐进式加载原理图** — 流程图：Agent 启动 → 扫描 skills/ → 加载 metadata（常驻 ~100 tokens）→ 任务匹配时加载完整指令 → 按需加载 references/
-5. **手动交互 vs Agent 自主循环对比图** — 两张流程图上下排列，先展示手动交互流程，再展示 Agent 自主循环流程，形成对比
-6. **Agent 核心循环拆解图** — 时序图：用户输入 → 理解任务 → 选择工具 → 执行工具 → 观察结果 →（循环或结束）
-7. **Agent 信任/介入决策树** — 流程图：任务是否明确？→ 范围是否受控？→ 结果是否可验证？→ 信任 / 监督 / 手动处理
+5. **Tool 调用本质示意图** — 时序图：LLM 输出 tool call → Agent Runtime 拦截 → 执行真实工具 → 结果回传 → LLM 继续推理
+6. **Tool 调用协议 6 步流程图** — 详细时序图：① tool call → ② Schema 校验 → ③ execute → ④ result → ⑤ afterToolCall → ⑥ toolResult message
+7. **手动交互 vs Agent 自主循环对比图** — 两张流程图上下排列，先展示手动交互流程，再展示 Agent 自主循环流程，形成对比
+8. **Agent 核心循环拆解图** — 时序图：用户输入 → 理解任务 → 选择工具 → 执行工具 → 观察结果 →（循环或结束）
+9. **Agent 信任/介入决策树** — 流程图：任务是否明确？→ 范围是否受控？→ 结果是否可验证？→ 信任 / 监督 / 手动处理
 
 ## 演示脚本格式
 
@@ -206,7 +227,9 @@ demo-project/
 | `demo-scripts/01-opening.md` | 开场预告演示 |
 | `demo-scripts/02-basics.md` | 提示词基础篇演示（角色、约束、Few-shot、结构化输出） |
 | `demo-scripts/03-advanced.md` | 提示词进阶篇演示（CoT、ReAct、上下文管理、模板化） |
+| `demo-scripts/03.5-tools.md` | Tool 调用原理与实践演示（本质、协议、自定义 Tool） |
 | `demo-scripts/04-agent.md` | Agent 入门演示（循环拆解、端到端任务） |
+| `scripts/log-tools.ts` | pi extension 示例：注册 `count_log_levels` 自定义工具 |
 
 ## 不做的事
 

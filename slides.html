@@ -357,12 +357,114 @@ flowchart TD
   </div>
 </section>
 
-<!-- ═══════════ 过渡 3→4 ═══════════ -->
+<!-- ═══════════ 过渡 3→Tool ═══════════ -->
 <section class="transition-slide">
-  <h2>前面的所有技巧 — 都是手工操作</h2>
-  <p>写提示词 → 看输出 → 判断 → 再写 → 再看……</p>
-  <p style="color:#1967d2;font-size:1.1em;">有没有东西能自动完成这个循环？</p>
-  <p style="color:#1967d2;font-size:1.3em;font-weight:bold;">Agent</p>
+  <h2>ReAct 的"行动"步骤 — AI 怎么动手？</h2>
+  <p>AI 自己不会执行 — 你需要给它工具</p>
+  <p style="color:#1967d2;">Tool 调用原理与实践 →</p>
+</section>
+
+<!-- ═══════════════ TOOL 专题 (8min) ═══════════════ -->
+<section>
+  <h2>工具专题：Tool 调用原理与实践</h2>
+  <p style="color:#999">8 分钟</p>
+  <p style="font-size:0.8em;">LLM = 大脑 · Tool = 手 · Runtime = 神经系统</p>
+</section>
+
+<section>
+  <h3>Tool 调用的本质</h3>
+  <p style="font-size:0.8em;">LLM 只输出 JSON — 不执行任何操作</p>
+  <pre><code class="language-json">{"name":"read_file","arguments":{"path":"sample.log"}}</code></pre>
+  <div class="mermaid">
+sequenceDiagram
+    participant L as LLM
+    participant R as Agent Runtime
+    participant T as 真实工具
+    L->>R: 输出 tool call JSON
+    R->>T: read_file("sample.log")
+    T-->>R: 文件内容...
+    R->>L: 追加 tool result 消息
+    L->>L: 根据结果继续推理
+  </div>
+  <p style="font-size:0.7em;margin-top:10px;">LLM = 大脑 · Tool = 手 · 结果 = 触觉反馈</p>
+</section>
+
+<section>
+  <h3>Tool 调用协议 — 6 步生命周期</h3>
+  <div class="mermaid">
+sequenceDiagram
+    participant L as LLM
+    participant R as Agent Runtime
+    participant T as Tool
+    L->>R: ① 输出 tool call
+    R->>R: ② Schema 校验 + 权限检查
+    R->>T: ③ execute(params)
+    T-->>R: ④ AgentToolResult
+    R->>R: ⑤ afterToolCall 后处理
+    R->>L: ⑥ 追加 toolResult 到对话
+  </div>
+</section>
+
+<section>
+  <h3>pi 源码对照</h3>
+  <table style="font-size:0.6em;">
+    <tr><th>步骤</th><th>pi 钩子</th><th>作用</th></tr>
+    <tr><td>① LLM 输出</td><td><code>message_update</code></td><td>流式接收 tool call 参数</td></tr>
+    <tr><td>② 校验</td><td><code>validateToolArguments()</code> + <code>beforeToolCall</code></td><td>TypeBox schema + 权限门禁</td></tr>
+    <tr><td>③ 执行</td><td><code>tool.execute(id, params, signal, onUpdate)</code></td><td>实际调用，支持流式进度</td></tr>
+    <tr><td>④ 结果</td><td><code>AgentToolResult</code></td><td>结构化结果 + terminate 信号</td></tr>
+    <tr><td>⑤ 后处理</td><td><code>afterToolCall</code></td><td>重写结果、标记错误</td></tr>
+    <tr><td>⑥ 追加</td><td><code>context.messages.push()</code></td><td>LLM 下轮带上工具结果</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>实战：注册自定义 Tool</h3>
+  <p style="font-size:0.7em;">场景：给 Agent 装一个 <code>count_log_levels</code> 工具</p>
+  <pre><code class="language-typescript">// extensions/log-tools.ts
+export default function (pi: ExtensionAPI) {
+  // ① Schema — 告诉 LLM 工具的参数格式
+  pi.registerTool({
+    name: "count_log_levels",
+    label: "统计日志级别",
+    parameters: Type.Object({
+      filepath: Type.String({ description: "日志文件路径" }),
+    }),
+    // ② Execute — 实际业务逻辑
+    execute: async (id, params, signal, onUpdate) => {
+      onUpdate({ content: [{ type: "text", text: "读取中..." }], details: {} });
+      // ...统计日志级别...
+      return { content: [{ type: "text", text: JSON.stringify(counts) }], details: {} };
+    },
+  });
+  // ③ Hook — 权限控制
+  pi.on("tool_call", async (event) => {
+    if (!event.filepath.endsWith(".log"))
+      return { block: true, reason: "只允许 .log 文件" };
+  });
+}</code></pre>
+</section>
+
+<section>
+  <h3>Tool 三要素</h3>
+  <table>
+    <tr><th>要素</th><th>代码</th><th>作用</th></tr>
+    <tr><td><b>Schema</b></td><td><code>Type.Object({ filepath: Type.String() })</code></td><td>告诉 LLM 参数格式</td></tr>
+    <tr><td><b>Execute</b></td><td><code>execute: async (...) => { ... }</code></td><td>实际执行逻辑</td></tr>
+    <tr><td><b>Hook</b></td><td><code>pi.on("tool_call", ...)</code></td><td>权限控制 / 后处理</td></tr>
+  </table>
+  <div class="check-box" style="margin-top:15px;">
+    <b>费曼检查</b><br>
+    "Tool 调用的三个关键角色是什么？用大白话说。"<br>
+    <span style="font-size:0.8em;">（大脑发指令 → 手干活 → 触觉反馈回大脑）</span>
+  </div>
+</section>
+
+<!-- ═══════════ 过渡 Tool→4 ═══════════ -->
+<section class="transition-slide">
+  <h2>全套零件已就位</h2>
+  <p>思考的大脑 (CoT) + 行动的双手 (Tool) + 观察的眼睛 (ReAct)</p>
+  <p style="color:#1967d2;font-size:1.2em;">组装起来 = Agent</p>
 </section>
 
 <!-- ═══════════════ PART 4：Agent (15min) ═══════════════ -->
@@ -494,10 +596,12 @@ flowchart TD
   <h3>三句话总结</h3>
   <div style="text-align:left;">
     <p class="fragment">❶ <b>好提示词 = 清晰角色 + 结构化要求 + 示例</b><br>
-    <span style="font-size:0.7em;color:#666;">像给 GPS 输入精确地址一样给 AI 输入提示词</span></p>
+    <span style="font-size:0.7em;color:#666;">输入质量决定输出质量</span></p>
     <p class="fragment">❷ <b>进阶技巧让 AI 自己思考验证</b><br>
     <span style="font-size:0.7em;color:#666;">CoT 推理链 · ReAct 行动循环 · 上下文三层结构+压缩</span></p>
-    <p class="fragment">❸ <b>Agent = 自动化的"思考→行动→观察"循环</b><br>
+    <p class="fragment">❸ <b>Tool = Agent 的"手"</b><br>
+    <span style="font-size:0.7em;color:#666;">Schema 定义接口 · Execute 执行逻辑 · Hook 控制权限</span></p>
+    <p class="fragment">❹ <b>Agent = 自动化的"思考→行动→观察"循环</b><br>
     <span style="font-size:0.7em;color:#666;">你从操作者变成监督者</span></p>
   </div>
 </section>

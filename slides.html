@@ -86,12 +86,12 @@
 <section>
   <h1>提示词工程与 Agent 入门</h1>
   <p style="font-size:1.2em;color:#666;margin-top:30px;">用 AI 写更好的代码，让 Agent 帮你干活</p>
-  <p style="font-size:0.8em;color:#999;margin-top:40px;">时长 60 分钟 · 费曼学习法 · 理论 + 演示</p>
+  <p style="font-size:0.8em;color:#999;margin-top:40px;">时长 66 分钟 · 费曼学习法 · 理论 + 演示</p>
 </section>
 
 <!-- ═══════════════ PART 1：开场 (5min) ═══════════════ -->
 <section>
-  <h2>第一部分：开场与问题设定</h2>
+  <h2>Part 1：开场与问题设定</h2>
   <p style="color:#999">5 分钟</p>
 </section>
 
@@ -131,10 +131,10 @@ $ pi
   <p style="color:#1967d2;">先从最基础的技巧开始 →</p>
 </section>
 
-<!-- ═══════════════ PART 2：基础篇 (15min) ═══════════════ -->
+<!-- ═══════════════ PART 2：提示词工程 (21min) ═══════════════ -->
 <section>
-  <h2>第二部分：提示词工程 · 基础篇</h2>
-  <p style="color:#999">15 分钟</p>
+  <h2>Part 2：提示词工程</h2>
+  <p style="color:#999">21 分钟 · 7 个技巧</p>
   <p style="font-size:0.8em;"><b>输入的质量决定输出的质量</b></p>
 </section>
 
@@ -222,19 +222,6 @@ flowchart TD
   </div>
 </section>
 
-<!-- ═══════════ 过渡 2→3 ═══════════ -->
-<section class="transition-slide">
-  <h2>复杂问题不是一问一答能搞定的</h2>
-  <p>怎么让 AI 自己先想清楚再回答？</p>
-  <p style="color:#1967d2;">进阶技巧 →</p>
-</section>
-
-<!-- ═══════════════ PART 3：进阶篇 (15min) ═══════════════ -->
-<section>
-  <h2>第三部分：提示词工程 · 进阶篇</h2>
-  <p style="color:#999">15 分钟</p>
-  <p style="font-size:0.8em;">让 AI 学会先思考再回答</p>
-</section>
 
 <section>
   <h3>技巧五：思维链（CoT）</h3>
@@ -364,9 +351,9 @@ flowchart TD
   <p style="color:#1967d2;">Tool 调用原理与实践 →</p>
 </section>
 
-<!-- ═══════════════ TOOL 专题 (8min) ═══════════════ -->
+<!-- ═══════════════ PART 3：Tool + Agent 循环 (12min) ═══════════════ -->
 <section>
-  <h2>工具专题：Tool 调用原理与实践</h2>
+  <h2>Part 3：Tool 调用原理与实践</h2>
   <p style="color:#999">8 分钟</p>
   <p style="font-size:0.8em;">LLM = 大脑 · Tool = 手 · Runtime = 神经系统</p>
 </section>
@@ -418,6 +405,13 @@ sequenceDiagram
   </table>
 </section>
 
+<!-- ═══════════════ PART 4：Extension (4min) ═══════════════ -->
+<section>
+  <h2>Part 4：pi Extension 机制</h2>
+  <p style="color:#999">4 分钟</p>
+  <p style="font-size:0.8em;">Extension = pi 的插件框架 · Tool/Skill/命令 都通过它接入</p>
+</section>
+
 <section>
   <h3>实战：注册自定义 Tool</h3>
   <p style="font-size:0.7em;">场景：给 Agent 装一个 <code>count_log_levels</code> 工具</p>
@@ -467,9 +461,9 @@ export default function (pi: ExtensionAPI) {
   <p style="color:#1967d2;">提示词测试 →</p>
 </section>
 
-<!-- ═══════════════ PROMPTFOO 专题 (6min) ═══════════════ -->
+<!-- ═══════════════ PART 5：提示词测试 (6min) ═══════════════ -->
 <section>
-  <h2>Promptfoo 专题：用测试驱动提示词</h2>
+  <h2>Part 5：提示词测试 — Promptfoo</h2>
   <p style="color:#999">6 分钟</p>
   <p style="font-size:0.8em;">提示词测试 = 单元测试 for LLM</p>
 </section>
@@ -530,19 +524,67 @@ tests:
   </div>
 </section>
 
-<!-- ═══════════ 过渡 Promptfoo→4 ═══════════ -->
+<!-- ═══════════ 过渡 6→7 ═══════════ -->
+<section class="transition-slide">
+  <h2>Tool 是手，promptfoo 是尺 — Agent 还需要"知识库"</h2>
+  <p style="color:#1967d2;">Skill 规范与原理 →</p>
+</section>
+
+<!-- ═══════════════ PART 6：Skill + 局限 (11min) ═══════════════ -->
+<section>
+  <h2>Part 6：Skill 规范与原理</h2>
+  <p style="color:#999">8 分钟</p>
+  <p style="font-size:0.8em;">Skill = Agent 的知识库</p>
+</section>
+
+<section>
+  <h3>Skill vs Tool — 知识库 vs 执行器</h3>
+  <table style="font-size:0.65em;">
+    <tr><th></th><th>Tool</th><th>Skill</th></tr>
+    <tr><td>作用</td><td>执行操作</td><td>注入知识/流程</td></tr>
+    <tr><td>注入位置</td><td>对话消息</td><td>System Prompt</td></tr>
+    <tr><td>触发方式</td><td>LLM 输出 tool call</td><td>Agent 启动时自动加载</td></tr>
+    <tr><td>生命周期</td><td>按需调用</td><td>整个 session 常驻</td></tr>
+  </table>
+</section>
+
+<section>
+  <h3>agentskill.io 规范 — 渐进式加载</h3>
+  <pre><code style="font-size:0.55em;">skills/log-analyzer/
+├── SKILL.md           # 核心指令
+├── scripts/
+│   └── parse_log.py   # 辅助脚本
+└── references/
+    └── log-patterns.md</code></pre>
+  <div class="mermaid">
+flowchart TD
+    A[Agent 启动] --> B["① 扫描 YAML 头部<br/>~100 tokens 常驻"]
+    B --> C{任务匹配?}
+    C -->|是| D["② 加载完整 SKILL.md"]
+    C -->|否| E[不加载]
+    D --> F{需要参考?}
+    F -->|是| G["③ 按需加载 references/"]
+    F -->|否| H[执行 Skill 指令]
+    G --> H
+  </div>
+</section>
+
+<section>
+  <div class="check-box">
+    <b>费曼检查</b><br>
+    "Tool 和 Skill 有什么区别？用大白话说。"<br>
+    <span style="font-size:0.8em;">（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。）</span>
+  </div>
+</section>
+
+<!-- ═══════════ 过渡 6→7 ═══════════ -->
 <section class="transition-slide">
   <h2>全套零件已就位</h2>
-  <p>可测试的提示词 (Promptfoo) + 可调用的工具 (Tool)</p>
-  <p>+ 思考的大脑 (CoT) + 观察的眼睛 (ReAct)</p>
+  <p>可测试的提示词 + 可调用的工具 + 可复用的知识</p>
   <p style="color:#1967d2;font-size:1.2em;">组装起来 = Agent</p>
 </section>
 
-<!-- ═══════════════ PART 4：Agent (15min) ═══════════════ -->
-<section>
-  <h2>第四部分：Agent 入门</h2>
-  <p style="color:#999">15 分钟</p>
-</section>
+
 
 <section>
   <h3>什么是 Agent？</h3>
@@ -650,13 +692,7 @@ flowchart TD
   </div>
 </section>
 
-<section>
-  <div class="check-box">
-    <b>费曼检查</b><br>
-    "Tool 和 Skill 有什么区别？用大白话说。"<br>
-    <span style="font-size:0.8em;">（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。）</span>
-  </div>
-</section>
+
 
 <section>
   <h3>Agent 的局限与边界</h3>
@@ -681,23 +717,16 @@ flowchart TD
   </ol>
 </section>
 
-<section>
-  <div class="check-box">
-    <b>费曼检查</b><br>
-    "一小时前，你手动写提示词分析日志。<br>现在 Agent 自动完成了同样的事。<br>从'手动'到'自动'，核心变化是什么？用你自己的话说。"<br>
-    <span style="font-size:0.8em;">（AI 自己驱动了思考-行动-观察循环，你从操作者变成了监督者）</span>
-  </div>
-</section>
 
-<!-- ═══════════ 过渡 4→5 ═══════════ -->
+<!-- ═══════════ 过渡 6→7 ═══════════ -->
 <section class="transition-slide">
   <h2>从"怎么写好一句话"<br>到"怎么让 AI 自己完成整个任务"</h2>
   <p style="color:#1967d2;">回顾一下，明天上班你能用上什么？</p>
 </section>
 
-<!-- ═══════════════ PART 5：收尾 (5min) ═══════════════ -->
+<!-- ═══════════════ PART 7：总结 (5min) ═══════════════ -->
 <section>
-  <h2>第五部分：总结与收尾</h2>
+  <h2>Part 7：总结与收尾</h2>
   <p style="color:#999">5 分钟</p>
 </section>
 

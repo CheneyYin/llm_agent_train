@@ -2,7 +2,7 @@
 
 ## 课程信息
 
-- **时长**：60 分钟（55 分钟内容 + 5 分钟缓冲）
+- **时长**：61 分钟（59 分钟内容 + 2 分钟缓冲）
 - **受众**：有编程经验的开发工程师
 - **方法**：费曼学习法 — 用类比和实例解释每个概念
 - **工具**：[pi agent](https://github.com/earendil-works/pi) — 开源编程 Agent CLI
@@ -65,7 +65,7 @@ Found 4 errors          ← 实际有 6 行日志，只解析出 4 行
 
 ---
 
-## 第一部分：开场与问题设定（5 分钟）
+## Part 1：开场与问题设定（5 分钟）
 
 ### 破冰（1 分钟）
 
@@ -78,7 +78,7 @@ Found 4 errors          ← 实际有 6 行日志，只解析出 4 行
 学完这堂课，你能：
 
 1. 写出高质量提示词，让 AI 更好帮你写代码
-2. 理解 Agent 是什么、怎么工作的
+2. 理解 Agent 是什么、怎么工作的——**Agent = 自动化的"思考→行动→观察"循环**，你从操作者变成监督者。就像自驾 vs 打车：你不再握方向盘，只需要告诉司机目的地
 3. 判断什么时候该用 Agent
 
 **过渡**：空讲理论没意思，我们先花 30 秒看一眼——用今天要讲的工具 pi agent，它能帮我们做什么。
@@ -97,7 +97,7 @@ Found 4 errors          ← 实际有 6 行日志，只解析出 4 行
 
 ---
 
-## 第二部分：提示词工程 · 基础篇（15 分钟）
+## Part 2：提示词工程（21 分钟）
 
 提示词工程的核心就一句话：**输入的质量决定输出的质量**。
 
@@ -212,15 +212,9 @@ flowchart TD
 
 ---
 
-< 衔接过渡 2 → 3 >
-
-到目前为止，我们学的都是"一轮对话"的技巧——你写好提示词，AI 给你答案。但现实中复杂的开发问题不是一问一答能搞定的。接下来我们升级一下：怎么让 AI 自己先想清楚再回答，甚至自己去验证答案对不对。
-
 ---
 
-## 第三部分：提示词工程 · 进阶篇（15 分钟）
-
-**叙事线**：让 AI 学会先思考再回答。
+### 进阶技巧
 
 ### 技巧五：思维链（Chain of Thought, CoT）（4 分钟）
 
@@ -324,13 +318,7 @@ flowchart TD
 
 **过渡**：现在你的工具箱里已经有好几件利器了——CoT、ReAct、上下文管理。但每次用的时候都重新敲一遍提示词太傻了。程序员的本能反应是什么？封装复用。
 
-### 技巧八：提示词模板化与复用 — Skill（4 分钟）
 
-把反复使用的好提示词封装成 Skill，下次一键调用，不再重复敲。
-
-你刚刚手动做的这个 CoT 分析流程——先看日志、再读源码、对比差异、定位根因——如果每次都要重新敲一遍提示词，太麻烦了。你可以把它封装成一个 **Skill**。
-
-**什么是 Skill**：Skill 是 Agent Skills 开放标准（agentskill.io）定义的可复用提示词模板。一个 Skill 就是一个目录，里面有 `SKILL.md`（核心指令），还可以有辅助脚本和参考文档。Agent 启动时自动发现 Skill，使用时按需加载。
 
 **Skill 的目录结构**：
 
@@ -394,13 +382,14 @@ flowchart TD
 
 ---
 
-< 衔接过渡 3 → Tool >
+
+< 衔接过渡 2 → 3 >
 
 ReAct 模式里有一个关键步骤——"行动"。AI 自己不会动手——你需要给它工具。接下来我们看看，AI 怎么使用工具、工具调用背后发生了什么。
 
 ---
 
-## 工具专题：Tool 调用原理与实践（8 分钟）
+## Part 3：Tool 调用原理与实践（12 分钟）
 
 定位：把 ReAct 中"行动"这一步具体化——LLM 如何输出 tool call、Agent runtime 如何执行、开发者如何注册自定义工具。
 
@@ -540,13 +529,73 @@ export default function (pi: ExtensionAPI) {
 
 ---
 
-< 衔接过渡 Tool → Promptfoo >
+< 衔接过渡 3 → 4 >
 
-Tool 给 Agent 装上了手——它能执行操作了。但还有一个根本问题：提示词本身的质量怎么保证？你改了提示词，怎么知道改对了？
+Part 3 实战中用到了 `registerTool` 和 `pi.on("tool_call")`——但它们从哪来？这就是 Extension 机制。
 
 ---
 
-## Promptfoo 专题：用测试驱动的方式优化提示词（6 分钟）
+## Part 4：pi Extension 机制（4 分钟）
+
+定位：Extension 是 pi 的插件框架。Tool、Skill、命令、事件钩子——都通过它接入。一个 Extension = 一个 TypeScript 文件，默认导出函数，接收 `ExtensionAPI`。
+
+### Extension 是什么（1 分钟）
+
+```typescript
+// extensions/my-extension.ts
+export default function (pi: ExtensionAPI) {
+  // 注册工具、监听事件、添加命令...
+}
+```
+
+pi 启动时自动扫描三个位置：
+- `~/.pi/agent/extensions/`（用户级，所有项目可用）
+- `.pi/extensions/`（项目级，仅当前项目）
+- `settings.json` 中 `extensions` 数组（显式路径）
+
+### ExtensionAPI 核心能力（2 分钟）
+
+| 能力 | API | 示例 |
+|------|-----|------|
+| 注册工具 | `pi.registerTool({...})` | Part 3 的 `count_log_levels` |
+| 注册命令 | `pi.registerCommand("name", {handler})` | `/mycommand` 斜杠命令 |
+| 生命周期钩子 | `pi.on("event", handler)` | `session_start`、`agent_start`、`tool_call`、`agent_end` |
+| 权限门禁 | `handler → {block: true}` | 拦截危险操作 |
+| 流式更新 | `onUpdate(partialResult)` | 工具执行中推送进度 |
+| 会话状态 | `pi.appendEntry(type, data)` | 跨回合持久化数据 |
+
+**Extension 生命周期**：
+
+```mermaid
+flowchart TD
+    A[pi 启动] --> B[扫描 extensions/ 目录]
+    B --> C[加载 .ts 文件<br/>执行 export default]
+    C --> D[注册 tools / commands]
+    D --> E[session_start]
+    E --> F["agent_start → (tool_call → execute) × N → agent_end"]
+    F --> E
+```
+
+### 演示：回到 log-tools.ts（1 分钟）
+
+讲师重新打开 `scripts/log-tools.ts`，从 Extension 视角重新审视：
+
+- `export default function(pi)` — Extension 入口，pi 启动时自动调用
+- `pi.registerTool({...})` — 注册工具到 Agent 的工具列表
+- `pi.on("tool_call", ...)` — 拦截每次工具调用，做权限校验
+- `onUpdate(...)` — 工具执行中推送进度到 UI
+
+"这个 Extension 只有 50 行代码，但给 Agent 装上了一只新'手'——这就是 Extension 的能力。掌握了 ExtensionAPI，你可以在 Agent 上挂载任何自定义逻辑。"
+
+---
+
+< 衔接过渡 4 → 5 >
+
+Tool 和 Extension 给了 Agent 执行能力。但还有一个根本问题：提示词本身的质量怎么保证？
+
+---
+
+## Part 5：提示词测试 — Promptfoo（6 分钟）
 
 定位：把 TDD 理念带入提示词工程。定义"好"的标准，批量跑测试，数据驱动优化——在进入 Agent 之前，先掌握测试提示词的能力。
 
@@ -631,91 +680,17 @@ tests:
 
 ---
 
-< 衔接过渡 Promptfoo → 4 >
+< 衔接过渡 5 → 6 >
 
-现在提示词可以测试了，Tool 可以调用了。Agent 就是把这两者组装起来——可测试的提示词 + 可调用的工具 + 自动化的思考循环。前面所有技巧最终汇聚于此。
+Tool 给 Agent 装上了手，promptfoo 让提示词可测试。但 Agent 还需要"知道怎么做"——这就是 Skill。
 
 ---
 
-## 第四部分：Agent 入门（15 分钟）
+## Part 6：Skill 规范与原理（11 分钟）
 
-### 什么是 Agent（3 分钟）
+定位：Skill 是 Agent 的"知识库"。合并 Part 2 技巧八的"封装复用"视角和 agentskill.io 规范，完整讲解 Skill 的设计、加载与生命周期。
 
-**类比**：自驾 vs 打车。
-
-- **提示词工程**：你开车。方向盘、油门、刹车、看路况——每一步都要你自己操作。想去哪、走哪条路、要不要变道，全你决定。
-- **Agent**：你打车。告诉司机目的地，然后你可以看风景、回消息。但你得偶尔确认司机没走错路——尤其在接近目的地的小路岔口。
-
-**动手交互 vs Agent 自主循环**：
-
-```mermaid
-flowchart TD
-    subgraph manual[手动交互模式]
-        U1[你写提示词] --> A1[AI 回复]
-        A1 --> U2[你看结果]
-        U2 --> U3[你判断下一步]
-        U3 --> U4[你再写提示词]
-        U4 --> A2[AI 再回复]
-        A2 --> U5[...]
-    end
-```
-
-```mermaid
-flowchart TD
-    subgraph agent[Agent 自主循环]
-        T1[Agent 理解任务] --> T2[Agent 选择工具]
-        T2 --> T3[Agent 执行工具]
-        T3 --> T4[Agent 观察结果]
-        T4 --> T5{任务完成?}
-        T5 -->|否| T1
-        T5 -->|是| T6[返回最终结果]
-    end
-```
-
-**过渡**：Agent 听起来神秘，但拆开看核心就是一个简单的四步循环——和我们刚才手动做的 ReAct 几乎一模一样，只是现在 AI 自己来驱动这个循环了。
-
-### Agent 核心循环拆解（4 分钟）
-
-每一步用大白话解释，结合 pi agent 的实际执行日志讲解。
-
-```mermaid
-sequenceDiagram
-    participant U as 用户
-    participant A as Agent
-    participant T as 工具（文件/终端/编辑器）
-
-    U->>A: 任务：分析 sample.log 的 bug 并修复 parse.py
-    loop 思考-行动-观察 循环
-        A->>A: ① 理解：需要先看日志内容
-        A->>T: ② 行动：读取 sample.log
-        T-->>A: ③ 观察：6行日志，含 ERROR/WARN/INFO
-        A->>A: ① 理解：需要检查 parse.py 的正则
-        A->>T: ② 行动：读取 parse.py
-        T-->>A: ③ 观察：正则只匹配 ERROR
-        A->>A: ① 理解：找到 bug——正则需要匹配所有级别
-        A->>T: ② 行动：修改 parse.py 的正则
-        T-->>A: ③ 观察：修改完成
-        A->>A: ① 理解：需要验证修复
-        A->>T: ② 行动：运行 python parse.py sample.log
-        T-->>A: ③ 观察：输出 6 条，修复成功
-    end
-    A->>U: 任务完成，报告结果
-```
-
-**四步拆解**：
-
-1. **理解任务**：Agent 解读用户目标，拆解为子任务
-2. **选择工具**：Agent 从可用工具列表中匹配——回顾 Tool 专题：Schema 定义了每个工具的参数格式，Agent 据此判断"这个工具能完成当前子任务"
-3. **执行工具**：Agent Runtime 调用工具的 Execute 函数，Hook 做权限检查——这正是 Tool 专题讲的 Schema/Execute/Hook 三要素在运转
-4. **观察结果**：Agent 分析工具输出，判断是否需要继续
-
-**过渡**：刚才拆开的四步循环里有一个关键能力——"选择工具"。但 Agent 不只有工具，它还需要知道"怎么做这件事"。这就是 Skill——它不是手，是知识库。
-
-### Skill 规范与原理（5 分钟）
-
-**第1节：Skill vs Tool — 知识库 vs 执行器（2 分钟）**
-
-Tool 和 Skill 是 Agent 的两大核心能力，但作用完全不同：
+### Skill vs Tool — 知识库 vs 执行器（2 分钟）
 
 | | Tool | Skill |
 |------|------|------|
@@ -724,23 +699,9 @@ Tool 和 Skill 是 Agent 的两大核心能力，但作用完全不同：
 | 触发方式 | LLM 输出 tool call | Agent 启动时自动加载 |
 | 生命周期 | 按需调用，用完即弃 | 整个 session 常驻 |
 
-```mermaid
-flowchart LR
-    subgraph Tool["Tool — 按需执行"]
-        direction TB
-        L1[LLM 输出 tool call] --> R1[Runtime 执行工具]
-        R1 --> M1[结果追加到对话消息]
-    end
-    subgraph Skill["Skill — 常驻知识"]
-        direction TB
-        S1[Agent 启动] --> S2[扫描 skills/ 目录]
-        S2 --> S3[匹配的 Skill 注入 System Prompt]
-    end
-```
+### agentskill.io 规范 & 渐进式加载（3 分钟）
 
-**第2节：agentskill.io 规范 & 渐进式加载（2 分钟）**
-
-Skill 遵循 Agent Skills 开放标准（agentskill.io），核心设计原则是**渐进式加载**——三层结构让 Agent 管理几十上百个 Skill 而不会撑爆上下文：
+Skill 遵循 Agent Skills 开放标准（agentskill.io），核心设计是**渐进式加载**——三层结构让 Agent 管理几十上百个 Skill 而不会撑爆上下文。
 
 已有示例 `skills/log-analyzer/` 的目录结构：
 
@@ -753,33 +714,45 @@ skills/log-analyzer/
     └── log-patterns.md   # 参考知识（按需加载）
 ```
 
-渐进式加载原理（已在 Part 3 技巧八展示，此处回顾）：
+渐进式加载三层：
+1. **metadata 层**（~100 tokens）：`name` + `description` — 常驻
+2. **指令层**（500-5000 tokens）：完整 `SKILL.md` — 按需加载
+3. **资源层**（按需）：`references/` — 需要时才加载
 
-1. **metadata 层**（~100 tokens）：`name` + `description` — Agent 启动时扫描所有 Skill 的 YAML 头部，只加载这两行
-2. **指令层**（500-5000 tokens）：完整 `SKILL.md` 正文 — 用户任务匹配到 Skill 的 description 时才加载
-3. **资源层**（按需）：`references/` 中的文件 — 执行 Skill 过程中需要时才加载
+```mermaid
+flowchart TD
+    A[Agent 启动] --> B["① 扫描 YAML 头部<br/>~100 tokens 常驻"]
+    B --> C{任务匹配 description?}
+    C -->|是| D["② 加载完整 SKILL.md"]
+    C -->|否| E[不加载 节省上下文]
+    D --> F{需要参考?}
+    F -->|是| G["③ 按需加载 references/"]
+    F -->|否| H[执行 Skill 指令]
+    G --> H
+```
 
-**第3节：演示 — Skill 的完整生命周期（1 分钟）**
+### 实战演示（2 分钟）
 
-讲师在 pi 中演示 `skills/log-analyzer/` 的完整生命周期：
+讲师在 pi 中演示 `skills/log-analyzer/SKILL.md` 的完整生命周期：
+1. pi 启动 → 自动扫描 → available_skills 显示 `log-analyzer`
+2. 输入"分析 sample.log 的错误根因"→ Agent 匹配 description → 自动加载
+3. Agent 按 6 步流程执行 → 需要时按需加载 `references/log-patterns.md`
 
-1. pi 启动 → 自动扫描 `skills/` 目录 → 在 available_skills 中显示 `log-analyzer`
-2. 输入"帮我分析 sample.log 的错误根因"→ Agent 匹配 description → 自动加载 SKILL.md 完整指令
-3. Agent 按 Skill 定义的 6 步流程执行 → 需要时按需加载 `references/log-patterns.md`
+### 封装一个 Skill（1 分钟）
 
-**费曼检查**："Tool 和 Skill 有什么区别？用大白话说。"（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。讲师停顿 8 秒，学生自检）
+回到技巧八的核心洞察：把反复使用的提示词封装成 Skill，下次一键调用。`skills/log-analyzer/SKILL.md` 就是把 CoT 分析流程封装为可复用模板的例子。
 
 ---
 
-< 衔接过渡 Skill → 局限 >
+**费曼检查**："Tool 和 Skill 有什么区别？用大白话说。"（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。）
 
-**过渡**：Skill 让 Agent 能复用知识和流程，但不是所有场景都适合写成 Skill。接下来我们聊聊 Agent 的边界在哪——什么该交给 Skill，什么该自己盯着。
+---
 
 ### Agent 的局限与边界（3 分钟）
 
-延续打车的比喻：大路司机认识，小路岔口仍需你指路。通用任务 Agent 很稳，项目特有的编码规范、业务逻辑仍需你介入。
+Tool 和 Skill 给了 Agent 强大能力，但有边界。延续打车的比喻：大路司机认识，小路岔口仍需你指路。
 
-**何时该信任 Agent，何时该介入**：
+**何时信任 Agent，何时介入**：
 
 ```mermaid
 flowchart TD
@@ -792,24 +765,21 @@ flowchart TD
 ```
 
 **三个安全原则**：
-
-1. **不盲信**：Agent 的输出和人类代码一样需要 review
-2. **隔离环境**：让 Agent 在受限环境中操作（如 git worktree、Docker），避免误删文件
-3. **可回滚**：Agent 的所有修改都应可撤销（git commit 是最好的保险）
-
----
-
-**费曼检查**："一小时前，你手动写提示词让 AI 分析日志。现在，Agent 自动完成了同样的事。从'手动操作'到'自动完成'，核心变化是什么？用你自己的话说，不要用术语。"（讲师停顿 10 秒，学生自检。核心变化 = AI 自己驱动了'思考→行动→观察'循环，你从操作者变成了监督者）
+1. **不盲信**：Agent 输出和人类代码一样需要 review
+2. **隔离环境**：用 git worktree / Docker 限制 Agent 操作范围
+3. **可回滚**：所有修改都应可撤销（git commit 是最好的保险）
 
 ---
 
-< 衔接过渡 4 → 5 >
+< 衔接过渡 6 → 7 >
 
-我们从"怎么写好一句话"开始，一路走到了"怎么让 AI 自己完成整个任务"。让我们退一步，回顾一下这一小时我们学到了什么，更重要的是——明天上班你能立刻用上什么。
+现在提示词可测试、Tool 可调用、Skill 可复用——但 Agent 不是银弹。知道什么时候用它、什么时候自己动手，才是成熟的开发者。
+
+现在提示词可以测试了（promptfoo），Tool 可以调用了，Skill 给 Agent 装上了知识库。把这三者组装起来——可测试的提示词 + 可调用的工具 + 可复用的知识 + 自动化的思考循环——这就是 Agent。
 
 ---
 
-## 第五部分：总结与收尾（5 分钟）
+## Part 7：总结与收尾（5 分钟）
 
 ### 核心要点回顾（2 分钟）
 
@@ -838,7 +808,7 @@ flowchart TD
 
 ---
 
-## 缓冲时间（5 分钟）
+## 缓冲时间（2 分钟）
 
 灵活用于超时、额外问答或延长的演示。
 

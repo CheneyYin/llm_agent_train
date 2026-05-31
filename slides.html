@@ -535,18 +535,56 @@ sequenceDiagram
 </section>
 
 <section>
-  <h3>端到端演示</h3>
-  <p>一句话任务 → Agent 自主完成全流程</p>
-  <pre><code style="font-size:0.65em;">&gt; 分析 parse.py 和 sample.log，找出 parse.py 的 bug 并修复，
-  修复后运行 python parse.py sample.log 验证输出为 6 条</code></pre>
-  <table style="font-size:0.65em; margin-top:15px;">
-    <tr><th>时间</th><th>Agent 行为</th><th>点评</th></tr>
-    <tr><td>00:00</td><td>收到一句话任务</td><td>没有分步指导</td></tr>
-    <tr><td>00:05</td><td>选择先读 sample.log</td><td>自己决定顺序</td></tr>
-    <tr><td>00:20</td><td>定位到第 9 行正则</td><td>和人工分析结果一致</td></tr>
-    <tr><td>00:25</td><td>修改代码</td><td>自动编辑</td></tr>
-    <tr><td>00:30</td><td>运行验证命令</td><td>自动验证 ✓</td></tr>
+  <h3>Skill vs Tool — 知识库 vs 执行器</h3>
+  <table style="font-size:0.65em;">
+    <tr><th></th><th>Tool</th><th>Skill</th></tr>
+    <tr><td>作用</td><td>执行操作</td><td>注入知识/流程</td></tr>
+    <tr><td>注入位置</td><td>对话消息</td><td>System Prompt</td></tr>
+    <tr><td>触发方式</td><td>LLM 输出 tool call</td><td>Agent 启动时自动加载</td></tr>
+    <tr><td>生命周期</td><td>按需调用</td><td>整个 session 常驻</td></tr>
   </table>
+  <div class="mermaid">
+flowchart LR
+    subgraph Tool["Tool - 按需执行"]
+        direction TB
+        L1[LLM 输出 tool call] --> R1[Runtime 执行]
+        R1 --> M1[结果追加到对话消息]
+    end
+    subgraph Skill["Skill - 常驻知识"]
+        direction TB
+        S1[Agent 启动] --> S2[扫描 skills/]
+        S2 --> S3[匹配的 Skill 注入 System Prompt]
+    end
+  </div>
+</section>
+
+<section>
+  <h3>agentskill.io 规范 — 渐进式加载</h3>
+  <pre><code style="font-size:0.55em;">skills/log-analyzer/
+├── SKILL.md           # 核心指令
+├── scripts/
+│   └── parse_log.py   # 辅助脚本
+└── references/
+    └── log-patterns.md</code></pre>
+  <div class="mermaid">
+flowchart TD
+    A[Agent 启动] --> B["① 扫描 YAML 头部<br/>name + description<br/>~100 tokens 常驻"]
+    B --> C{用户任务<br/>匹配 description?}
+    C -->|是| D["② 加载完整 SKILL.md<br/>~500-5000 tokens"]
+    C -->|否| E[不加载 节省上下文]
+    D --> F{需要参考?}
+    F -->|是| G["③ 按需加载<br/>references/ 文件"]
+    F -->|否| H[执行 Skill 指令]
+    G --> H
+  </div>
+</section>
+
+<section>
+  <div class="check-box">
+    <b>费曼检查</b><br>
+    "Tool 和 Skill 有什么区别？用大白话说。"<br>
+    <span style="font-size:0.8em;">（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。）</span>
+  </div>
 </section>
 
 <section>

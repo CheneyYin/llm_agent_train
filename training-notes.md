@@ -618,25 +618,71 @@ sequenceDiagram
 3. **执行工具**：Agent Runtime 调用工具的 Execute 函数，Hook 做权限检查——这正是 Tool 专题讲的 Schema/Execute/Hook 三要素在运转
 4. **观察结果**：Agent 分析工具输出，判断是否需要继续
 
-**过渡**：理论讲完了，我们来看一个真实的例子——用 pi agent 从头到尾完成一个开发任务。注意观察：Agent 在每一步是怎么思考、怎么选工具、怎么根据结果调整的。
+**过渡**：刚才拆开的四步循环里有一个关键能力——"选择工具"。但 Agent 不只有工具，它还需要知道"怎么做这件事"。这就是 Skill——它不是手，是知识库。
 
-### 端到端演示（5 分钟）
+### Skill 规范与原理（5 分钟）
 
-任务：分析 sample.log → 定位 parse.py 的 bug → 修改代码 → 验证修复。
+**第1节：Skill vs Tool — 知识库 vs 执行器（2 分钟）**
 
-**演示策略**：提前执行一次该任务并保存 session 日志，现场以回放关键步骤 + 讲师实时讲解的方式呈现，避免 Agent 实时执行时间不可控导致超时。
+Tool 和 Skill 是 Agent 的两大核心能力，但作用完全不同：
 
-**讲师讲解要点**（配合回放逐步展示）：
+| | Tool | Skill |
+|------|------|------|
+| 作用 | 执行操作（读文件、运行命令） | 注入知识/流程（领域知识、工作流模板） |
+| 注入位置 | 对话消息（tool result） | System Prompt |
+| 触发方式 | LLM 输出 tool call | Agent 启动时自动加载 |
+| 生命周期 | 按需调用，用完即弃 | 整个 session 常驻 |
 
-| 阶段 | Agent 行为 | 讲师点评 |
-|------|-----------|---------|
-| 读取日志 | Agent 自动读取 `sample.log`（使用 read_file 工具或 shell 命令） | "注意——我们没有告诉它 '先用 cat 看日志'，它自己知道要先看数据" |
-| 分析代码 | Agent 读取 parse.py | "它发现日志有 6 行但输出只有 4 行，怀疑代码有问题，自己去读了源码" |
-| 定位 bug | Agent 指出正则只匹配 ERROR | "它就和你刚才手动分析时得到的结论一样——但这次你没有写任何提示词" |
-| 修改代码 | Agent 用编辑工具修改正则 | "它把 `ERROR` 改成了 `\w+`，匹配所有日志级别" |
-| 验证修复 | Agent 运行 `python parse.py sample.log` | "它改完代码后自动运行验证——你不需要说 '改完验证一下'" |
+```mermaid
+flowchart LR
+    subgraph Tool["Tool — 按需执行"]
+        direction TB
+        L1[LLM 输出 tool call] --> R1[Runtime 执行工具]
+        R1 --> M1[结果追加到对话消息]
+    end
+    subgraph Skill["Skill — 常驻知识"]
+        direction TB
+        S1[Agent 启动] --> S2[扫描 skills/ 目录]
+        S2 --> S3[匹配的 Skill 注入 System Prompt]
+    end
+```
 
-**过渡**：刚才的演示看起来很流畅，但说实话，Agent 不是每次都这么顺利。就像打车——大路司机认识，但小路的岔口可能需要你指路。我们来聊聊 Agent 的边界在哪里。
+**第2节：agentskill.io 规范 & 渐进式加载（2 分钟）**
+
+Skill 遵循 Agent Skills 开放标准（agentskill.io），核心设计原则是**渐进式加载**——三层结构让 Agent 管理几十上百个 Skill 而不会撑爆上下文：
+
+已有示例 `skills/log-analyzer/` 的目录结构：
+
+```
+skills/log-analyzer/
+├── SKILL.md              # 核心指令（YAML 头部 + Markdown 正文）
+├── scripts/
+│   └── parse_log.py      # 辅助脚本（按需执行）
+└── references/
+    └── log-patterns.md   # 参考知识（按需加载）
+```
+
+渐进式加载原理（已在 Part 3 技巧八展示，此处回顾）：
+
+1. **metadata 层**（~100 tokens）：`name` + `description` — Agent 启动时扫描所有 Skill 的 YAML 头部，只加载这两行
+2. **指令层**（500-5000 tokens）：完整 `SKILL.md` 正文 — 用户任务匹配到 Skill 的 description 时才加载
+3. **资源层**（按需）：`references/` 中的文件 — 执行 Skill 过程中需要时才加载
+
+**第3节：演示 — Skill 的完整生命周期（1 分钟）**
+
+讲师在 pi 中演示 `skills/log-analyzer/` 的完整生命周期：
+
+1. pi 启动 → 自动扫描 `skills/` 目录 → 在 available_skills 中显示 `log-analyzer`
+2. 输入"帮我分析 sample.log 的错误根因"→ Agent 匹配 description → 自动加载 SKILL.md 完整指令
+3. Agent 按 Skill 定义的 6 步流程执行 → 需要时按需加载 `references/log-patterns.md`
+
+**费曼检查**："Tool 和 Skill 有什么区别？用大白话说。"（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。讲师停顿 8 秒，学生自检）
+
+---
+
+< 衔接过渡 Skill → 局限 >
+
+**过渡**：Skill 让 Agent 能复用知识和流程，但不是所有场景都适合写成 Skill。接下来我们聊聊 Agent 的边界在哪——什么该交给 Skill，什么该自己盯着。
 
 ### Agent 的局限与边界（3 分钟）
 

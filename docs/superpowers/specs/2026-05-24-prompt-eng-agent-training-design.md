@@ -95,7 +95,7 @@ demo-project/
 | 4分钟 | Few-shot 示例 | 类比"给 AI 看参考答案" | pi 演示：0-shot vs 2-shot 对比（三组太多，两组足以说明效果） |
 | ↳ | 过渡："现在 AI 的输出质量已经很好了，但这是面向人读的。如果你想把 AI 的输出接入自动化流程，需要的不是一段优美的散文，而是机器能解析的结果。" | | |
 | 3分钟 | 结构化输出 | "填表单 vs 自由文本"类比 — Prompt 约束 JSON（1.5min）+ Pydantic AI 代码定义 Schema 自动校验重试（1.5min），含原理 Mermaid 图 | pi 演示：JSON 约束输出；编辑器展示 Pydantic AI 代码示例和原理图 |
-| ↳ | **费曼检查**："如果同事问你'我该用哪个提示词技巧'，你会推荐哪个？用一句话说理由。"（讲师等待 5 秒，观察学员反应，不点名） | | |
+| ↳ | **费曼检查**："为什么给 AI 加一句角色描述，回复质量立刻提升？用你自己的话解释。" | | |
 
 
 
@@ -108,7 +108,7 @@ demo-project/
 | 3分钟 | Agent 上下文组成与生命周期 | "和同事聊了3小时"类比 — System Prompt（常驻）+ Tools（常驻）+ Messages（动态+压缩），含上下文三层结构图和压缩流程图（2 张 Mermaid） | pi 演示：展示上下文三层结构；讲解压缩触发机制和摘要生成流程；System Prompt 保护实验 |
 | ↳ | 过渡："现在你的工具箱里已经有好几件利器了——CoT、ReAct、上下文管理。但每次用的时候都重新敲一遍提示词太傻了。程序员的本能反应是什么？封装复用。" | | |
 | 4分钟 | Skill：提示词的"函数化" | "代码里的函数封装"类比；展示 agentskill.io 规范的 Skill 目录结构、SKILL.md 格式、渐进式加载原理（Mermaid 图） | 终端展示 `skills/log-analyzer/` 目录结构；编辑器打开 SKILL.md 逐段讲解；Mermaid 图展示三层渐进式加载 |
-| ↳ | **费曼检查**："CoT 和 ReAct 有什么区别？用一个词形容各自的核心。"（CoT=推理链，ReAct=行动循环，讲师口头确认） | | |
+| ↳ | **费曼检查**："用大白话说出 ReAct 的三步——先做什么？然后？怎么知道做完了？" | | |
 
 < 衔接过渡 2 → 3 >
 "ReAct 模式里有一个关键步骤——'行动'。AI 怎么行动？它自己不会动手——你需要给它工具。接下来我们看看，AI 怎么使用工具、工具调用的背后发生了什么。"
@@ -129,7 +129,7 @@ demo-project/
 | ↳ | **费曼检查**："Tool 调用的三个关键角色是什么？不用术语，用大白话说。"（大脑发指令 → 手干活 → 触觉反馈回大脑，讲师快速口头过一遍） | | |
 
 < 衔接过渡 3 → 4 >
-"Tool 给 Agent 装上了手——它能执行操作了。但还有一个根本问题：提示词本身的质量怎么保证？你改了提示词，怎么知道改对了？"
+"Part 3 实战中用到了 registerTool 和 pi.on("tool_call")——但它们从哪来？这就是 Extension 机制。"
 
 ---
 
@@ -245,12 +245,12 @@ demo-project/
 |------|------|
 | `training-notes.md` | 完整讲义，含类比话术、Mermaid 图、关键概念、演示提示 |
 | `demo-scripts/01-opening.md` | 开场预告演示 |
-| `demo-scripts/02-basics.md` | 提示词基础篇演示（角色、约束、Few-shot、结构化输出） |
-| `demo-scripts/02.5-promptfoo.md` | Promptfoo 演示（配置、运行、结果对比） |
-| `scripts/promptfooconfig.yaml` | promptfoo 示例配置（两个提示词版本对比） |
-| `demo-scripts/03-advanced.md` | 提示词进阶篇演示（CoT、ReAct、上下文管理、模板化） |
+| `demo-scripts/02-basics.md` | 提示词工程演示（角色、约束、Few-shot、结构化输出、CoT、ReAct、上下文） |
+| `demo-scripts/03.5-tools.md` | Tool 调用演示（本质、协议、自定义Tool） |
+| `demo-scripts/03.7-promptfoo.md` | Promptfoo 演示（配置、运行、结果对比） |
+| `scripts/promptfooconfig.yaml` | promptfoo 示例配置 |
 | `demo-scripts/03.5-tools.md` | Tool 调用原理与实践演示（本质、协议、自定义 Tool） |
-| `demo-scripts/04-agent.md` | Agent 入门演示（循环拆解、端到端任务） |
+| `demo-scripts/04-agent.md` | Agent 入门演示（核心循环、局限边界） |
 | `scripts/log-tools.ts` | pi extension 示例：注册 `count_log_levels` 自定义工具 |
 
 ## 不做的事
@@ -262,7 +262,7 @@ demo-project/
 
 ## 风险应对
 
-- **现场演示失败**：每个演示脚本包含备用方案，可准备预录截图作为后备；端到端 Agent 演示（第四部分）提前执行一次并保存 session 日志，现场以回放 + 讲解方式呈现，避免实时等待超时
+- **现场演示失败**：每个演示脚本包含备用方案，可准备预录截图作为后备；Agent 核心概念已融入 Part 1（课程目标）和 Part 3（核心循环），不再需要独立的端到端演示
 - **pi agent 不可用**：演示可用任意 LLM CLI 工具替代；pi 特有功能（skills、slash commands）在讲义中说明通用等价方案
 - **时间超限**：每个部分有硬性截止时间，缓冲吸收超时
 - **学员中途提问**：缓冲时间可被消耗；复杂问题推迟到课后处理

@@ -81,20 +81,15 @@
 </head>
 <body>
 <div class="reveal"><div class="slides">
-
-<!-- ═══════════════ 封面 ═══════════════ -->
 <section>
   <h1>提示词工程与 Agent 入门</h1>
   <p style="font-size:1.2em;color:#666;margin-top:30px;">用 AI 写更好的代码，让 Agent 帮你干活</p>
   <p style="font-size:0.8em;color:#999;margin-top:40px;">时长 66 分钟 · 费曼学习法 · 理论 + 演示</p>
 </section>
-
-<!-- ═══════════════ PART 1：开场 (5min) ═══════════════ -->
 <section>
   <h2>Part 1：开场与问题设定</h2>
   <p style="color:#999">5 分钟</p>
 </section>
-
 <section>
   <h3>破冰</h3>
   <div class="highlight-box">
@@ -103,7 +98,6 @@
   </div>
   <p style="margin-top:20px;">如果有一个工具能帮你分担这些，你会用吗？<b>怎么用？</b></p>
 </section>
-
 <section>
   <h3>课程目标</h3>
   <p>学完这堂课，你能：</p>
@@ -113,7 +107,6 @@
     <li class="fragment"><b>判断什么时候该用</b> Agent</li>
   </ol>
 </section>
-
 <section>
   <h3>预告演示</h3>
   <p>先花 30 秒看一眼 — pi agent 能做什么</p>
@@ -123,21 +116,11 @@ $ pi
   sample.log。帮我快速看一下有什么问题。</code></pre>
   <p style="font-size:0.7em;color:#999;margin-top:20px;">Agent 自己读文件 → 分析代码 → 指出 bug → 给出建议</p>
 </section>
-
-<!-- ═══════════ 过渡 1→2 ═══════════ -->
-<section class="transition-slide">
-  <h2>不是随便打几个字就能得到好结果</h2>
-  <p>提示词写得好不好，结果天差地别</p>
-  <p style="color:#1967d2;">先从最基础的技巧开始 →</p>
-</section>
-
-<!-- ═══════════════ PART 2：提示词工程 (21min) ═══════════════ -->
 <section>
   <h2>Part 2：提示词工程</h2>
   <p style="color:#999">21 分钟 · 7 个技巧</p>
   <p style="font-size:0.8em;"><b>输入的质量决定输出的质量</b></p>
 </section>
-
 <section>
   <h3>什么是提示词工程？</h3>
   <div class="analogy-box">
@@ -145,7 +128,6 @@ $ pi
   </div>
   <p style="margin-top:20px;">提示词工程 = <b>学会怎么跟 AI 说话</b></p>
 </section>
-
 <section>
   <h3>技巧一：角色设定</h3>
   <div class="analogy-box">
@@ -157,7 +139,6 @@ $ pi
     <tr><td>有角色</td><td>"你是资深 Python 后端开发，负责日志分析。请分析 sample.log"</td><td style="color:#0a0;">专业分析视角</td></tr>
   </table>
 </section>
-
 <section>
   <h3>技巧二：明确指令与约束</h3>
   <table style="margin-top:15px;">
@@ -166,7 +147,6 @@ $ pi
     <tr><td>精确</td><td>"分析 sample.log：① 按错误类型分组 ② 统计次数 ③ 按次数降序排列"</td></tr>
   </table>
 </section>
-
 <section>
   <h3>技巧三：Few-shot 示例</h3>
   <p style="font-size:0.8em;">给一两个输入→输出的例子，AI 照猫画虎。</p>
@@ -176,7 +156,6 @@ $ pi
     <tr><td>2-shot</td><td>"示例1：ERROR timeout → {级别:ERROR, 原因:timeout}。示例2：ERROR null → {级别:ERROR, 原因:null_value}。现在分析所有行。"</td><td style="color:#0a0;">严格遵循格式</td></tr>
   </table>
 </section>
-
 <section>
   <h3>技巧四：结构化输出</h3>
   <div class="two-col" style="margin-top:15px;">
@@ -201,7 +180,6 @@ agent = Agent(
     </div>
   </div>
 </section>
-
 <section>
   <h3>Pydantic AI 原理</h3>
   <div class="mermaid">
@@ -214,15 +192,12 @@ flowchart TD
     F --> C
   </div>
 </section>
-
 <section>
   <div class="check-box">
     <b>费曼检查</b><br>
     "同事发了一条提示词，AI 回复很烂。你加上一句<br>'你是一个资深后端开发'——回复立刻好了。<br>为什么这一句话有这么大作用？用你自己的话解释。"
   </div>
 </section>
-
-
 <section>
   <h3>技巧五：思维链（CoT）</h3>
   <table style="margin-top:15px;">
@@ -231,7 +206,6 @@ flowchart TD
     <tr><td>CoT</td><td>"逐步分析：① 看 sample.log 内容 ② 读 parse.py 逻辑 ③ 对比预期和实际 ④ 描述 bug"</td></tr>
   </table>
 </section>
-
 <section>
   <h3>CoT 效果对比</h3>
   <table>
@@ -240,7 +214,6 @@ flowchart TD
     <tr><td>思维链</td><td style="color:#0a0;">推理可追踪，结论有据</td><td>tokens 多，回答长</td></tr>
   </table>
 </section>
-
 <section>
   <h3>技巧六：ReAct 模式</h3>
   <p style="font-size:0.8em;">ReAct = 思考→行动→观察→再思考。所有 Agent 的底层工作模式。</p>
@@ -251,7 +224,6 @@ flowchart LR
     O --> T
   </div>
 </section>
-
 <section>
   <h3>ReAct 演示</h3>
   <div style="font-size:0.7em; text-align:left;">
@@ -262,7 +234,6 @@ flowchart LR
   </div>
   <p style="margin-top:15px;font-size:0.8em;color:#1967d2;">这就是 Agent 的底层工作模式</p>
 </section>
-
 <section>
   <h3>技巧七：Agent 上下文组成与生命周期</h3>
   <div class="analogy-box">
@@ -278,7 +249,6 @@ flowchart LR
     end
   </div>
 </section>
-
 <section>
   <h3>对话消息的累积与压缩</h3>
   <div class="mermaid">
@@ -293,7 +263,6 @@ flowchart TD
     H --> C
   </div>
 </section>
-
 <section>
   <h3>压缩机制与核心原则</h3>
   <div style="font-size:0.75em; text-align:left;">
@@ -306,7 +275,6 @@ flowchart TD
     <tr><td>工具输出精简</td><td>别把 10MB 日志全塞进上下文</td></tr>
   </table>
 </section>
-
 <section>
   <h3>技巧八：Skill — 提示词的"函数化"</h3>
   <p style="font-size:0.8em;">把反复使用的提示词封装成 Skill，下次一键调用。</p>
@@ -318,7 +286,6 @@ flowchart TD
     └── log-patterns.md   # 参考知识库</code></pre>
   <p style="font-size:0.7em;margin-top:10px;">Agent Skills 开放标准（agentskill.io）— 40+ 平台通用</p>
 </section>
-
 <section>
   <h3>Skill 渐进式加载</h3>
   <div class="mermaid">
@@ -335,7 +302,6 @@ flowchart TD
     I --> J
   </div>
 </section>
-
 <section>
   <div class="check-box">
     <b>费曼检查</b><br>
@@ -343,21 +309,11 @@ flowchart TD
     <span style="font-size:0.8em;">（观察数据 → 行动验证 → 看结果判断是否继续）</span>
   </div>
 </section>
-
-<!-- ═══════════ 过渡 3→Tool ═══════════ -->
-<section class="transition-slide">
-  <h2>ReAct 的"行动"步骤 — AI 怎么动手？</h2>
-  <p>AI 自己不会执行 — 你需要给它工具</p>
-  <p style="color:#1967d2;">Tool 调用原理与实践 →</p>
-</section>
-
-<!-- ═══════════════ PART 3：Tool + Agent 循环 (12min) ═══════════════ -->
 <section>
   <h2>Part 3：Tool 调用原理与实践</h2>
-  <p style="color:#999">8 分钟</p>
+  <p style="color:#999">12 分钟</p>
   <p style="font-size:0.8em;">LLM = 大脑 · Tool = 手 · Runtime = 神经系统</p>
 </section>
-
 <section>
   <h3>Tool 调用的本质</h3>
   <p style="font-size:0.8em;">LLM 只输出 JSON — 不执行任何操作</p>
@@ -375,7 +331,6 @@ sequenceDiagram
   </div>
   <p style="font-size:0.7em;margin-top:10px;">LLM = 大脑 · Tool = 手 · 结果 = 触觉反馈</p>
 </section>
-
 <section>
   <h3>Tool 调用协议 — 6 步生命周期</h3>
   <div class="mermaid">
@@ -391,7 +346,6 @@ sequenceDiagram
     R->>L: ⑥ 追加 toolResult 到对话
   </div>
 </section>
-
 <section>
   <h3>pi 源码对照</h3>
   <table style="font-size:0.6em;">
@@ -404,14 +358,11 @@ sequenceDiagram
     <tr><td>⑥ 追加</td><td><code>context.messages.push()</code></td><td>LLM 下轮带上工具结果</td></tr>
   </table>
 </section>
-
-<!-- ═══════════════ PART 4：Extension (4min) ═══════════════ -->
 <section>
   <h2>Part 4：pi Extension 机制</h2>
   <p style="color:#999">4 分钟</p>
   <p style="font-size:0.8em;">Extension = pi 的插件框架 · Tool/Skill/命令 都通过它接入</p>
 </section>
-
 <section>
   <h3>实战：注册自定义 Tool</h3>
   <p style="font-size:0.7em;">场景：给 Agent 装一个 <code>count_log_levels</code> 工具</p>
@@ -438,7 +389,6 @@ export default function (pi: ExtensionAPI) {
   });
 }</code></pre>
 </section>
-
 <section>
   <h3>Tool 三要素</h3>
   <table>
@@ -453,27 +403,16 @@ export default function (pi: ExtensionAPI) {
     <span style="font-size:0.8em;">（大脑发指令 → 手干活 → 触觉反馈回大脑）</span>
   </div>
 </section>
-
-<!-- ═══════════ 过渡 Tool→Promptfoo ═══════════ -->
-<section class="transition-slide">
-  <h2>Tool 让 Agent 能执行 — 但提示词质量怎么保证？</h2>
-  <p>你改了提示词，怎么知道改对了？</p>
-  <p style="color:#1967d2;">提示词测试 →</p>
-</section>
-
-<!-- ═══════════════ PART 5：提示词测试 (6min) ═══════════════ -->
 <section>
   <h2>Part 5：提示词测试 — Promptfoo</h2>
   <p style="color:#999">6 分钟</p>
   <p style="font-size:0.8em;">提示词测试 = 单元测试 for LLM</p>
 </section>
-
 <section>
   <h3>为什么需要测试提示词？</h3>
   <p style="font-size:0.8em;">你改代码不靠"看起来没问题"就上线 — 改提示词也一样</p>
   <p style="font-size:0.8em;">定义"正确输出"的标准 → 每次修改后自动验证 → 数据驱动优化</p>
 </section>
-
 <section>
   <h3>promptfoo 核心概念</h3>
   <pre><code style="font-size:0.55em;">promptfooconfig.yaml:
@@ -491,7 +430,6 @@ flowchart LR
     E -->|是| G[提交]
   </div>
 </section>
-
 <section>
   <h3>实战 — 两个版本对比</h3>
   <pre><code style="font-size:0.5em;">prompts:
@@ -507,7 +445,6 @@ tests:
         value: JSON.parse(output).length >= 2</code></pre>
   <p style="font-size:0.65em;margin-top:8px;"><code>promptfoo eval</code> → 版本 A 通过率 0/2 · 版本 B 通过率 2/2</p>
 </section>
-
 <section>
   <h3>Web UI — 并排对比</h3>
   <table style="font-size:0.6em;">
@@ -523,20 +460,11 @@ tests:
     <span style="font-size:0.8em;">（要测的提示词 + 用哪个模型 + 什么算对）</span>
   </div>
 </section>
-
-<!-- ═══════════ 过渡 6→7 ═══════════ -->
-<section class="transition-slide">
-  <h2>Tool 是手，promptfoo 是尺 — Agent 还需要"知识库"</h2>
-  <p style="color:#1967d2;">Skill 规范与原理 →</p>
-</section>
-
-<!-- ═══════════════ PART 6：Skill + 局限 (11min) ═══════════════ -->
 <section>
   <h2>Part 6：Skill 规范与原理</h2>
-  <p style="color:#999">8 分钟</p>
+  <p style="color:#999">11 分钟</p>
   <p style="font-size:0.8em;">Skill = Agent 的知识库</p>
 </section>
-
 <section>
   <h3>Skill vs Tool — 知识库 vs 执行器</h3>
   <table style="font-size:0.65em;">
@@ -547,7 +475,6 @@ tests:
     <tr><td>生命周期</td><td>按需调用</td><td>整个 session 常驻</td></tr>
   </table>
 </section>
-
 <section>
   <h3>agentskill.io 规范 — 渐进式加载</h3>
   <pre><code style="font-size:0.55em;">skills/log-analyzer/
@@ -568,7 +495,6 @@ flowchart TD
     G --> H
   </div>
 </section>
-
 <section>
   <div class="check-box">
     <b>费曼检查</b><br>
@@ -576,77 +502,6 @@ flowchart TD
     <span style="font-size:0.8em;">（Tool = 手，干活的。Skill = 说明书，告诉手怎么干。）</span>
   </div>
 </section>
-
-<!-- ═══════════ 过渡 6→7 ═══════════ -->
-<section class="transition-slide">
-  <h2>全套零件已就位</h2>
-  <p>可测试的提示词 + 可调用的工具 + 可复用的知识</p>
-  <p style="color:#1967d2;font-size:1.2em;">组装起来 = Agent</p>
-</section>
-
-
-
-<section>
-  <h3>什么是 Agent？</h3>
-  <div class="analogy-box">
-    <b>自驾 vs 打车</b><br>
-    提示词工程 = 你开车，方向盘油门刹车全自己操作<br>
-    Agent = 你打车，告诉司机目的地，可以看风景回消息——但得确认司机没走错路
-  </div>
-  <div class="two-col" style="margin-top:15px;">
-    <div style="font-size:0.7em;">
-      <p><b>手动交互</b></p>
-      <div class="mermaid">
-flowchart TD
-    U1[你写提示词] --> A1[AI 回复]
-    A1 --> U2[你看结果]
-    U2 --> U3[你判断下一步]
-    U3 --> U4[你再写提示词]
-    U4 --> A2[AI 再回复]
-    A2 --> U5[...]
-      </div>
-    </div>
-    <div style="font-size:0.7em;">
-      <p><b>Agent 自主循环</b></p>
-      <div class="mermaid">
-flowchart TD
-    T1[理解任务] --> T2[选择工具]
-    T2 --> T3[执行工具]
-    T3 --> T4[观察结果]
-    T4 --> T5{完成?}
-    T5 -->|否| T1
-    T5 -->|是| T6[返回结果]
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <h3>Agent 核心循环拆解</h3>
-  <div class="mermaid">
-sequenceDiagram
-    participant U as 用户
-    participant A as Agent
-    participant T as 工具
-
-    U->>A: 分析 sample.log 并修复 parse.py
-    loop 思考-行动-观察 循环
-        A->>A: ① 理解：需要先看日志
-        A->>T: ② 行动：读 sample.log
-        T-->>A: ③ 观察：6行，含 ERROR/WARN/INFO
-        A->>A: ① 理解：检查 parse.py
-        A->>T: ② 行动：读 parse.py
-        T-->>A: ③ 观察：正则只匹配 ERROR
-        A->>A: ① 理解：找到 bug
-        A->>T: ② 行动：修改正则
-        T-->>A: ③ 观察：修改完成
-        A->>T: ② 行动：运行验证
-        T-->>A: ③ 观察：输出 6 条 ✓
-    end
-    A->>U: 任务完成
-  </div>
-</section>
-
 <section>
   <h3>Skill vs Tool — 知识库 vs 执行器</h3>
   <table style="font-size:0.65em;">
@@ -670,7 +525,6 @@ flowchart LR
     end
   </div>
 </section>
-
 <section>
   <h3>agentskill.io 规范 — 渐进式加载</h3>
   <pre><code style="font-size:0.55em;">skills/log-analyzer/
@@ -691,9 +545,6 @@ flowchart TD
     G --> H
   </div>
 </section>
-
-
-
 <section>
   <h3>Agent 的局限与边界</h3>
   <p style="font-size:0.8em;">大路司机认识，小路岔口需你指路。通用任务 Agent 很稳，特定细节仍需你介入。</p>
@@ -707,7 +558,6 @@ flowchart TD
     Q3 -->|否| A2
   </div>
 </section>
-
 <section>
   <h3>三个安全原则</h3>
   <ol>
@@ -716,20 +566,10 @@ flowchart TD
     <li><b>可回滚</b>：所有修改都应可撤销（git commit 是最好保险）</li>
   </ol>
 </section>
-
-
-<!-- ═══════════ 过渡 6→7 ═══════════ -->
-<section class="transition-slide">
-  <h2>从"怎么写好一句话"<br>到"怎么让 AI 自己完成整个任务"</h2>
-  <p style="color:#1967d2;">回顾一下，明天上班你能用上什么？</p>
-</section>
-
-<!-- ═══════════════ PART 7：总结 (5min) ═══════════════ -->
 <section>
   <h2>Part 7：总结与收尾</h2>
   <p style="color:#999">5 分钟</p>
 </section>
-
 <section>
   <h3>三句话总结</h3>
   <div style="text-align:left;">
@@ -743,7 +583,6 @@ flowchart TD
     <span style="font-size:0.7em;color:#666;">你从操作者变成监督者</span></p>
   </div>
 </section>
-
 <section>
   <h3>延伸学习</h3>
   <ul style="font-size:0.8em;">
@@ -753,15 +592,12 @@ flowchart TD
     <li><b>Agent Skills 标准</b>：agentskill.io</li>
   </ul>
 </section>
-
 <section>
   <h3>讨论</h3>
   <div class="highlight-box" style="font-size:1em;">
     你日常开发中哪个环节最想先用 Agent 来提效？
   </div>
 </section>
-
-<!-- ═══════════════ 附录 ═══════════════ -->
 <section>
   <h3>附录：关键概念速查</h3>
   <table style="font-size:0.55em;">
@@ -778,13 +614,11 @@ flowchart TD
     <tr><td>Agent</td><td>自动化思考+行动+观察循环</td><td>自驾 vs 打车</td></tr>
   </table>
 </section>
-
 <section>
   <h2>谢谢</h2>
   <p style="color:#999;">提示词工程与 Agent 入门</p>
 </section>
-
-</div></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.min.js"></script>

@@ -1,0 +1,53 @@
+# promptfoo 示例配置 — 对比两个提示词版本
+# 安装 promptfoo：npm install -g promptfoo
+# 运行测试：promptfoo eval
+# 查看结果：promptfoo view
+
+prompts:
+  # 版本 A：无角色设定，直接提问
+  - "分析以下日志中的错误：{{log_content}}"
+
+  # 版本 B：有角色设定 + 结构化输出要求
+  - "你是资深 SRE（网站可靠性工程师）。分析以下日志，以 JSON 数组格式输出发现的错误。每条错误包含 level（级别）、message（消息）和 severity（严重程度：high/medium/low）。只输出 JSON，不要其他文字。\n\n{{log_content}}"
+
+providers:
+  - openai:gpt-4o
+  # 也可对比多个模型：
+  # - openai:gpt-4o
+  # - anthropic:messages:claude-sonnet-4-6
+
+defaultTest:
+  assert:
+    # 每个测试的默认断言
+    - type: contains-json
+
+tests:
+  # 测试用例 1：混合级别的日志，应能识别 ERROR 和 WARN
+  - vars:
+      log_content: |
+        2026-05-24 10:23:15 ERROR DatabaseError: connection timeout
+        2026-05-24 10:23:17 WARN  Retry failed for transaction tx-9981
+        2026-05-24 10:24:15 INFO  Connection pool restored
+    assert:
+      - type: javascript
+        value: JSON.parse(output).length >= 2
+      - type: llm-rubric
+        value: "输出中包含了 ERROR 和 WARN 级别的错误信息"
+
+  # 测试用例 2：包含具体错误信息，输出应指出错误类型
+  - vars:
+      log_content: |
+        2026-05-24 10:23:45 ERROR InternalError: null value in column "user_id"
+    assert:
+      - type: icontains
+        value: "null value"
+      - type: javascript
+        value: JSON.parse(output).length >= 1
+
+  # 测试用例 3：只有 INFO 的日志，输出应为空数组
+  - vars:
+      log_content: |
+        2026-05-24 10:24:15 INFO  Connection pool restored
+    assert:
+      - type: javascript
+        value: JSON.parse(output).length === 0

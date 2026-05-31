@@ -460,10 +460,81 @@ export default function (pi: ExtensionAPI) {
   </div>
 </section>
 
-<!-- ═══════════ 过渡 Tool→4 ═══════════ -->
+<!-- ═══════════ 过渡 Tool→Promptfoo ═══════════ -->
+<section class="transition-slide">
+  <h2>Tool 让 Agent 能执行 — 但提示词质量怎么保证？</h2>
+  <p>你改了提示词，怎么知道改对了？</p>
+  <p style="color:#1967d2;">提示词测试 →</p>
+</section>
+
+<!-- ═══════════════ PROMPTFOO 专题 (6min) ═══════════════ -->
+<section>
+  <h2>Promptfoo 专题：用测试驱动提示词</h2>
+  <p style="color:#999">6 分钟</p>
+  <p style="font-size:0.8em;">提示词测试 = 单元测试 for LLM</p>
+</section>
+
+<section>
+  <h3>为什么需要测试提示词？</h3>
+  <p style="font-size:0.8em;">你改代码不靠"看起来没问题"就上线 — 改提示词也一样</p>
+  <p style="font-size:0.8em;">定义"正确输出"的标准 → 每次修改后自动验证 → 数据驱动优化</p>
+</section>
+
+<section>
+  <h3>promptfoo 核心概念</h3>
+  <pre><code style="font-size:0.55em;">promptfooconfig.yaml:
+├── prompts:   要测试的提示词（可多版本对比）
+├── providers: 用哪个模型（GPT-4o / Claude / …）
+└── tests:     测试用例 + 断言（输入 + 什么算对）</code></pre>
+  <div class="mermaid">
+flowchart LR
+    A[写提示词] --> B[定义测试用例]
+    B --> C[promptfoo eval]
+    C --> D[Web UI 并排对比]
+    D --> E{通过?}
+    E -->|否| F[改进提示词]
+    F --> B
+    E -->|是| G[提交]
+  </div>
+</section>
+
+<section>
+  <h3>实战 — 两个版本对比</h3>
+  <pre><code style="font-size:0.5em;">prompts:
+  - "分析日志错误：{{log_content}}"               # 版本 A：无角色
+  - "你是资深 SRE。以 JSON 输出。{{log_content}}"  # 版本 B：角色+结构化
+
+providers: [openai:gpt-4o]
+
+tests:
+  - vars: { log_content: "ERROR timeout\nWARN retry\nINFO restored" }
+    assert:
+      - type: javascript
+        value: JSON.parse(output).length >= 2</code></pre>
+  <p style="font-size:0.65em;margin-top:8px;"><code>promptfoo eval</code> → 版本 A 通过率 0/2 · 版本 B 通过率 2/2</p>
+</section>
+
+<section>
+  <h3>Web UI — 并排对比</h3>
+  <table style="font-size:0.6em;">
+    <tr><th></th><th>版本 A（无角色）</th><th>版本 B（角色+JSON）</th></tr>
+    <tr><td>测试1</td><td style="color:#c00;">✗ JSON 解析失败</td><td style="color:#0a0;">✓ 通过</td></tr>
+    <tr><td>测试2</td><td style="color:#c00;">✗ 未包含 "null value"</td><td style="color:#0a0;">✓ 通过</td></tr>
+    <tr><td>延迟</td><td>1.2s</td><td>1.5s</td></tr>
+    <tr><td>Token 成本</td><td>~200</td><td>~350</td></tr>
+  </table>
+  <div class="check-box" style="margin-top:10px;">
+    <b>费曼检查</b><br>
+    "promptfoo 的三个核心概念？用大白话说。"<br>
+    <span style="font-size:0.8em;">（要测的提示词 + 用哪个模型 + 什么算对）</span>
+  </div>
+</section>
+
+<!-- ═══════════ 过渡 Promptfoo→4 ═══════════ -->
 <section class="transition-slide">
   <h2>全套零件已就位</h2>
-  <p>思考的大脑 (CoT) + 行动的双手 (Tool) + 观察的眼睛 (ReAct)</p>
+  <p>可测试的提示词 (Promptfoo) + 可调用的工具 (Tool)</p>
+  <p>+ 思考的大脑 (CoT) + 观察的眼睛 (ReAct)</p>
   <p style="color:#1967d2;font-size:1.2em;">组装起来 = Agent</p>
 </section>
 

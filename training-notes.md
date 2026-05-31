@@ -540,9 +540,100 @@ export default function (pi: ExtensionAPI) {
 
 ---
 
-< 衔接过渡 Tool → 4 >
+< 衔接过渡 Tool → Promptfoo >
 
-现在我们知道了 Tool 是 Agent 的"手"。加上前面学的 CoT（思考链）和 ReAct（思考→行动→观察），你已经看到了 Agent 的全套零件——思考的大脑 + 行动的双手 + 观察的眼睛。把这些组装起来，就是 Agent。
+Tool 给 Agent 装上了手——它能执行操作了。但还有一个根本问题：提示词本身的质量怎么保证？你改了提示词，怎么知道改对了？
+
+---
+
+## Promptfoo 专题：用测试驱动的方式优化提示词（6 分钟）
+
+定位：把 TDD 理念带入提示词工程。定义"好"的标准，批量跑测试，数据驱动优化——在进入 Agent 之前，先掌握测试提示词的能力。
+
+### 为什么需要测试提示词（1 分钟）
+
+你写了一个提示词，改了改，怎么知道"改对了"？靠感觉？靠看一次输出？
+
+提示词测试 = 单元测试 for LLM。你改代码不靠"看起来没问题"就上线——写好测试、跑通、提交。改提示词也一样：定义"正确输出"的标准，每次修改后自动验证。
+
+### promptfoo 核心概念（2 分钟）
+
+promptfoo 是开源的 LLM 提示词测试框架（MIT 协议，60K+ GitHub stars）。它把测试组织成一个配置文件：
+
+```
+promptfooconfig.yaml
+├── prompts:    要测试的提示词（可多个版本对比）
+├── providers:  用哪个模型跑（GPT-4o / Claude / Gemini / …）
+└── tests:      测试用例 + 断言（输入 + 期望输出 + 通过标准）
+```
+
+**测试循环**：
+
+```mermaid
+flowchart LR
+    A[写提示词] --> B[定义测试用例<br/>输入 + 断言]
+    B --> C[promptfoo eval]
+    C --> D[查看结果<br/>Web UI 并排对比]
+    D --> E{通过?}
+    E -->|否| F[改进提示词]
+    F --> B
+    E -->|是| G[提交]
+```
+
+**过渡**：概念讲完了，直接用会场日志分析任务跑一遍。
+
+### 实战演示（3 分钟）
+
+用贯穿全场的 log 分析任务做演示。
+
+**Step 1**：讲师展示 `scripts/promptfooconfig.yaml`：
+
+```yaml
+prompts:
+  - "分析以下日志中的错误：{{log_content}}"                          # 版本 A：无角色
+  - "你是资深 SRE。分析以下日志，以 JSON 输出错误列表。{{log_content}}"  # 版本 B：有角色+结构化
+
+providers:
+  - openai:gpt-4o
+
+tests:
+  - vars:
+      log_content: |
+        2026-05-24 10:23:15 ERROR DatabaseError: connection timeout
+        2026-05-24 10:23:17 WARN  Retry failed
+        2026-05-24 10:24:15 INFO  Connection pool restored
+    assert:
+      - type: contains-json
+      - type: javascript
+        value: JSON.parse(output).length >= 2  # 至少识别 ERROR 和 WARN
+
+  - vars:
+      log_content: |
+        2026-05-24 10:23:45 ERROR InternalError: null value in column "user_id"
+    assert:
+      - type: icontains
+        value: "null value"  # 必须指出具体错误
+```
+
+**Step 2**：终端运行 `promptfoo eval`，展示命令行输出——版本 A 通过率 0/2，版本 B 通过率 2/2。
+
+**Step 3**：运行 `promptfoo view`，在浏览器中并排对比：
+- 两个版本各自输出
+- 通过/失败标记
+- 延迟对比
+- token 成本对比
+
+**关键结论**：有了数据，你不需要"感觉"哪个提示词更好——promptfoo 直接告诉你。
+
+---
+
+**费曼检查**："promptfoo 的三个核心概念是什么？用大白话说。"（要测的提示词 + 用哪个模型 + 什么算对，讲师停顿 8 秒，学生自检）
+
+---
+
+< 衔接过渡 Promptfoo → 4 >
+
+现在提示词可以测试了，Tool 可以调用了。Agent 就是把这两者组装起来——可测试的提示词 + 可调用的工具 + 自动化的思考循环。前面所有技巧最终汇聚于此。
 
 ---
 

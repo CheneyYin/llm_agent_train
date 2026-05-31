@@ -5,7 +5,7 @@
 - **主语言**：中文（技术术语可保留英文原文）
 - **受众**：有编程经验、对 LLM/Agent 接触较少的开发工程师
 - **形式**：现场讲课 + 演示，讲师主讲，学员观看
-- **时长**：65 分钟（63 分钟内容 + 2 分钟缓冲）
+- **时长**：69 分钟（67 分钟内容 + 2 分钟缓冲）
 - **方法**：费曼学习法 — 用简单语言和类比解释复杂概念
 - **工具**：[pi agent](https://github.com/earendil-works/pi) — 开源编程 Agent CLI（TypeScript monorepo，包含 @earendil-works/pi-ai 多供应商 LLM 层、@earendil-works/pi-agent-core Agent 运行时、@earendil-works/pi-coding-agent 交互式编程 Agent CLI）
 - **交付物**：`training-notes.md`（讲义） + `demo-scripts/`（演示脚本）
@@ -135,8 +135,26 @@ demo-project/
 | 3分钟 | 实战：注册自定义 Tool | 用 pi Extension 注册 `count_log_levels` 工具。三要素：Schema（TypeBox 定义参数）、Execute（业务逻辑 + 流式进度推送）、Hook（权限门禁）。演示 Agent 调用该工具分析 sample.log | 编辑器展示 `scripts/log-tools.ts`；pi 中运行 "用 count_log_levels 分析 sample.log" |
 | ↳ | **费曼检查**："Tool 调用的三个关键角色是什么？不用术语，用大白话说。"（大脑发指令 → 手干活 → 触觉反馈回大脑，讲师快速口头过一遍） | | |
 
-< 衔接过渡 Tool → 4 >
-"现在我们知道了 Tool 是 Agent 的'手'。加上前面学的 CoT（思考链）和 ReAct（思考→行动→观察），你已经看到了 Agent 的全套零件——思考的大脑 + 行动的双手 + 观察的眼睛。把这些组装起来，就是 Agent。"
+< 衔接过渡 Tool → Promptfoo >
+"Tool 给 Agent 装上了手——它能执行操作了。但还有一个根本问题：提示词本身的质量怎么保证？你改了提示词，怎么知道改对了？"
+
+---
+
+### Promptfoo 专题：用测试驱动的方式优化提示词（6 分钟）
+
+定位：把 TDD 理念带入提示词工程。在进入 Agent 之前，先掌握测试提示词的能力——因为 Agent 的好坏最终取决于提示词和 Tool 的质量。
+
+| 时间 | 主题 | 内容 | 演示 |
+|------|------|------|------|
+| 1分钟 | 为什么需要测试提示词 | 类比：提示词测试 = 单元测试 for LLM。你改代码不靠"看起来没问题"就上线，改提示词也一样 | — |
+| ↳ | 过渡："测试需要三个要素——被测的提示词、跑的模型、判断对错的标准。promptfoo 把这三件事组织成一个文件。" | | |
+| 2分钟 | promptfoo 核心概念 | 三个核心概念：prompts（提示词，可多版本对比）、providers（模型）、tests（用例 + 断言）。Mermaid 流程图展示测试循环 | 展示 `promptfooconfig.yaml` 结构 |
+| ↳ | 过渡："概念懂了，我们直接用会场日志分析任务跑一遍。" | | |
+| 3分钟 | 实战演示 | 两个提示词版本对比（无角色 vs 有角色+结构化输出），3 个测试用例，运行 `promptfoo eval`，Web UI 并排对比通过率/延迟/token 成本 | 终端运行 `promptfoo eval` + `promptfoo view`；讲师边操作边讲解 |
+| ↳ | **费曼检查**："promptfoo 的三个核心概念是什么？用大白话说。"（要测的提示词 + 用哪个模型 + 什么算对，讲师停顿 8 秒，学生自检） | | |
+
+< 衔接过渡 Promptfoo → 4 >
+"现在提示词可以测试了，Tool 可以调用了。Agent 就是把这两者组装起来——可测试的提示词 + 可调用的工具 + 自动化的思考循环。"
 
 ---
 
@@ -191,18 +209,19 @@ demo-project/
 
 ## Mermaid 图表清单
 
-讲义中嵌入 10 张 Mermaid 图：
+讲义中嵌入 11 张 Mermaid 图：
 
-1. **Pydantic AI 校验重试原理图** — 流程图：定义 Model → 转 JSON Schema → LLM 生成 → Pydantic 校验 → 通过则返回 / 失败则重试
-2. **Agent 上下文三层结构图** — flowchart：System Prompt（常驻）+ Tools（常驻）+ Messages（动态+可压缩）
-3. **上下文累积与压缩流程图** — 流程图：Session 开始 → 对话累积 → 超过阈值 → 触发 Compaction → 生成摘要 → 回到安全水位
-4. **Skill 渐进式加载原理图** — 流程图：Agent 启动 → 扫描 skills/ → 加载 metadata（常驻 ~100 tokens）→ 任务匹配时加载完整指令 → 按需加载 references/
-5. **Skill vs Tool 对比示意图** — 两张流程图并排：Tool 进入对话消息（按需调用），Skill 注入 System Prompt（常驻知识）
-6. **Tool 调用本质示意图** — 时序图：LLM 输出 tool call → Agent Runtime 拦截 → 执行真实工具 → 结果回传 → LLM 继续推理
-7. **Tool 调用协议 6 步流程图** — 详细时序图：① tool call → ② Schema 校验 → ③ execute → ④ result → ⑤ afterToolCall → ⑥ toolResult message
-8. **手动交互 vs Agent 自主循环对比图** — 两张流程图上下排列，先展示手动交互流程，再展示 Agent 自主循环流程，形成对比
-9. **Agent 核心循环拆解图** — 时序图：用户输入 → 理解任务 → 选择工具 → 执行工具 → 观察结果 →（循环或结束）
-10. **Agent 信任/介入决策树** — 流程图：任务是否明确？→ 范围是否受控？→ 结果是否可验证？→ 信任 / 监督 / 手动处理
+1. **promptfoo 测试循环流程图** — 流程图：写提示词 → 定义测试用例 → promptfoo eval → 查看结果 → 改进 → 重新跑
+3. **Pydantic AI 校验重试原理图** — 流程图：定义 Model → 转 JSON Schema → LLM 生成 → Pydantic 校验 → 通过则返回 / 失败则重试
+3. **Agent 上下文三层结构图** — flowchart：System Prompt（常驻）+ Tools（常驻）+ Messages（动态+可压缩）
+4. **上下文累积与压缩流程图** — 流程图：Session 开始 → 对话累积 → 超过阈值 → 触发 Compaction → 生成摘要 → 回到安全水位
+5. **Skill 渐进式加载原理图** — 流程图：Agent 启动 → 扫描 skills/ → 加载 metadata（常驻 ~100 tokens）→ 任务匹配时加载完整指令 → 按需加载 references/
+6. **Skill vs Tool 对比示意图** — 两张流程图并排：Tool 进入对话消息（按需调用），Skill 注入 System Prompt（常驻知识）
+7. **Tool 调用本质示意图** — 时序图：LLM 输出 tool call → Agent Runtime 拦截 → 执行真实工具 → 结果回传 → LLM 继续推理
+8. **Tool 调用协议 6 步流程图** — 详细时序图：① tool call → ② Schema 校验 → ③ execute → ④ result → ⑤ afterToolCall → ⑥ toolResult message
+9. **手动交互 vs Agent 自主循环对比图** — 两张流程图上下排列，先展示手动交互流程，再展示 Agent 自主循环流程，形成对比
+10. **Agent 核心循环拆解图** — 时序图：用户输入 → 理解任务 → 选择工具 → 执行工具 → 观察结果 →（循环或结束）
+11. **Agent 信任/介入决策树** — 流程图：任务是否明确？→ 范围是否受控？→ 结果是否可验证？→ 信任 / 监督 / 手动处理
 
 ## 演示脚本格式
 
@@ -227,6 +246,8 @@ demo-project/
 | `training-notes.md` | 完整讲义，含类比话术、Mermaid 图、关键概念、演示提示 |
 | `demo-scripts/01-opening.md` | 开场预告演示 |
 | `demo-scripts/02-basics.md` | 提示词基础篇演示（角色、约束、Few-shot、结构化输出） |
+| `demo-scripts/02.5-promptfoo.md` | Promptfoo 演示（配置、运行、结果对比） |
+| `scripts/promptfooconfig.yaml` | promptfoo 示例配置（两个提示词版本对比） |
 | `demo-scripts/03-advanced.md` | 提示词进阶篇演示（CoT、ReAct、上下文管理、模板化） |
 | `demo-scripts/03.5-tools.md` | Tool 调用原理与实践演示（本质、协议、自定义 Tool） |
 | `demo-scripts/04-agent.md` | Agent 入门演示（循环拆解、端到端任务） |

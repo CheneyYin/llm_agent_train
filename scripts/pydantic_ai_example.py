@@ -8,6 +8,14 @@ Pydantic AI 结构化输出示例
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
+model = OpenAIChatModel(
+    'deepseek-chat',  # deepseek-v4 的 thinking 与 tool_choice 冲突，改用 chat 模型
+    provider=OpenAIProvider(
+        base_url='https://api.deepseek.com'
+    ),
+)
 
 
 # ── 第1步：定义你期望的数据结构（这就是"表单"）──
@@ -29,28 +37,35 @@ class LogAnalysisResult(BaseModel):
 # ── 第2步：创建 Agent，绑定返回类型 ──
 
 agent = Agent(
-    "openai:gpt-4o",              # 使用的模型
-    result_type=LogAnalysisResult  # 告诉 Agent："你必须按这个结构返回"
+    model,               # 使用的模型
+    output_type=LogAnalysisResult  # 告诉 Agent："你必须按这个结构返回"
 )
 
 
-# ── 第3步：一句话调用 ──
+# ── 第3步：读取文件并调用 ──
 
-result = agent.run_sync("""
-读取 sample.log 的所有行，提取时间、级别、消息。
+# 将日志内容直接嵌入 prompt（LLM 本身无法访问文件系统）
+log_content = open("demo-project/sample.log").read()
+
+result = agent.run_sync(f"""
+分析以下日志内容。提取每行的时间、级别、消息。
 统计 ERROR 级别的数量作为 total_errors。
 summary 用中文写一句总结。
+
+日志内容：
+{log_content}
 """)
 
 
 # ── 第4步：类型安全地使用结果 ──
 
-# result 是 LogAnalysisResult 类型，IDE 有自动补全
-print(f"共 {result.total_errors} 条错误")
-print(f"总结：{result.summary}")
+# result.output 是 LogAnalysisResult 类型，IDE 有自动补全
+data = result.output
+print(f"共 {data.total_errors} 条错误")
+print(f"总结：{data.summary}")
 print()
 
-for entry in result.entries:
+for entry in data.entries:
     print(f"[{entry.time}] {entry.level}: {entry.message}")
 
 

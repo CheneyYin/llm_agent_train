@@ -32,10 +32,17 @@ export default function (pi: ExtensionAPI) {
     // ── ② Execute：实际的业务逻辑 ──
     execute: async (toolCallId, params, signal, onUpdate) => {
       // 流式推送进度——用户能看到工具正在运行
-      onUpdate({
+      onUpdate?.({
         content: [{ type: "text", text: "正在读取日志文件..." }],
         details: {},
       });
+
+      if (!params || typeof params.filepath !== "string") {
+        return {
+          content: [{ type: "text", text: "错误：缺少 filepath 参数" }],
+          details: {},
+        };
+      }
 
       const fs = await import("fs");
       const content = fs.readFileSync(params.filepath, "utf-8");
@@ -58,11 +65,12 @@ export default function (pi: ExtensionAPI) {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              { totalLines: lines.length, levelCounts: counts },
-              null,
-              2
-            ),
+            text: JSON.stringify({
+              tool: "count_log_levels",
+              invoked_at: new Date().toISOString(),
+              totalLines: lines.length,
+              levelCounts: counts,
+            }, null, 2),
           },
         ],
         details: { totalLines: lines.length, counts },
@@ -71,14 +79,16 @@ export default function (pi: ExtensionAPI) {
   });
 
   // ── ③ Hook：权限控制 ──
-  // beforeToolCall 钩子——在此做安全校验
+  // pi.on("tool_call") 在工具执行前触发，可返回 { block: true } 拦截
   pi.on("tool_call", async (event) => {
     if (event.toolName !== "count_log_levels") return;
 
-    const filepath = (event.arguments as Record<string, unknown>)
-      .filepath as string;
+    // pi 的 tool_call 事件中，参数在 input 字段
+    const params = (event as any).input ?? {};
+    const filepath = (params?.filepath ?? params?.filePath ?? "") as string;
+
     // 只允许读取 .log 文件，防止越权访问
-    if (!filepath?.endsWith(".log")) {
+    if (!filepath.endsWith(".log")) {
       return {
         block: true,
         reason: "count_log_levels 只允许分析 .log 文件",

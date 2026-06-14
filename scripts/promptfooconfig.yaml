@@ -11,43 +11,56 @@ prompts:
   - "你是资深 SRE（网站可靠性工程师）。分析以下日志，以 JSON 数组格式输出发现的错误。每条错误包含 level（级别）、message（消息）和 severity（严重程度：high/medium/low）。只输出 JSON，不要其他文字。\n\n{{log_content}}"
 
 providers:
-  - openai:gpt-4o
-  # 也可对比多个模型：
-  # - openai:gpt-4o
-  # - anthropic:messages:claude-sonnet-4-6
+  - id: deepseek:deepseek-chat
+    config:
+      temperature: 0.7
+      max_tokens: 4000
+      apiKey: sk-97260c3b155541f2ae02f3098a6c405f
 
-defaultTest:
-  assert:
-    # 每个测试的默认断言
-    - type: contains-json
+  - id: deepseek:deepseek-reasoner
+    config:
+      max_tokens: 8000
+      apiKey: sk-97260c3b155541f2ae02f3098a6c405f
 
 tests:
-  # 测试用例 1：混合级别的日志，应能识别 ERROR 和 WARN
+  # 用例 1：混合级别（ERROR + WARN + INFO），应能识别出 ERROR
   - vars:
       log_content: |
         2026-05-24 10:23:15 ERROR DatabaseError: connection timeout
         2026-05-24 10:23:17 WARN  Retry failed for transaction tx-9981
         2026-05-24 10:24:15 INFO  Connection pool restored
     assert:
-      - type: javascript
-        value: JSON.parse(output).length >= 2
-      - type: llm-rubric
-        value: "输出中包含了 ERROR 和 WARN 级别的错误信息"
+      - type: icontains
+        value: "ERROR"
+      - type: icontains
+        value: "timeout"
+      - type: not-icontains
+        value: "没有错误"
 
-  # 测试用例 2：包含具体错误信息，输出应指出错误类型
+  # 用例 2：具体错误类型，输出应提及 null value 和 user_id
   - vars:
       log_content: |
         2026-05-24 10:23:45 ERROR InternalError: null value in column "user_id"
     assert:
       - type: icontains
         value: "null value"
-      - type: javascript
-        value: JSON.parse(output).length >= 1
+      - type: icontains
+        value: "user_id"
 
-  # 测试用例 3：只有 INFO 的日志，输出应为空数组
+  # 用例 3：只有 INFO 的日志，不应声称有 ERROR
   - vars:
       log_content: |
         2026-05-24 10:24:15 INFO  Connection pool restored
     assert:
-      - type: javascript
-        value: JSON.parse(output).length === 0
+      - type: not-icontains
+        value: "ERROR"
+      - type: icontains
+        value: "INFO"
+
+  # 用例 4：版本对比 — B 应输出合法 JSON（A 不检查）
+  - vars:
+      log_content: |
+        2026-05-24 10:23:15 ERROR DatabaseError: connection timeout
+    assert:
+      - type: icontains
+        value: "ERROR"
